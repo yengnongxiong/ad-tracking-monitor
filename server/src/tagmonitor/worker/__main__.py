@@ -6,6 +6,8 @@ import os
 import signal
 import socket
 
+from tagmonitor.alerts.delivery import run_send_alert
+from tagmonitor.alerts.senders import make_email_sender
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import get_settings
 from tagmonitor.db.pool import create_pool
@@ -14,7 +16,10 @@ from tagmonitor.worker.capture_job import record_failed_capture, run_capture_job
 from tagmonitor.worker.context import DeadHandler, Handler, WorkerContext
 from tagmonitor.worker.runner import Worker
 
-HANDLERS: dict[str, Handler] = {"capture_and_check": run_capture_job}
+HANDLERS: dict[str, Handler] = {
+    "capture_and_check": run_capture_job,
+    "send_alert": run_send_alert,
+}
 DEAD_HANDLERS: dict[str, DeadHandler] = {"capture_and_check": record_failed_capture}
 
 
@@ -41,7 +46,13 @@ async def main() -> None:
         ) as capturer,
     ):
         worker = Worker(
-            WorkerContext(pool=pool, capturer=capturer, storage=storage, settings=settings),
+            WorkerContext(
+                pool=pool,
+                capturer=capturer,
+                storage=storage,
+                email=make_email_sender(settings),
+                settings=settings,
+            ),
             worker_id=f"{socket.gethostname()}-{os.getpid()}",
             concurrency=settings.worker_concurrency,
             handlers=HANDLERS,

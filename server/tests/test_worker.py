@@ -6,8 +6,9 @@ from collections.abc import Awaitable, Callable
 from typing import cast
 from uuid import UUID
 
+from tagmonitor.alerts.senders import ConsoleEmailSender, EmailSender
 from tagmonitor.browser.capturer import CaptureError, CaptureResult, PageCapturer
-from tagmonitor.config import get_settings
+from tagmonitor.config import Settings, get_settings
 from tagmonitor.db.pool import Pool
 from tagmonitor.page_capture import PageCapture
 from tagmonitor.queue.jobs import PRIORITY_MANUAL, Job, complete, enqueue
@@ -30,12 +31,15 @@ def make_worker(
     handlers: dict[str, Handler] | None = None,
     timings: Timings = FAST,
     run_scheduler: bool = False,
+    email: EmailSender | None = None,
+    settings: Settings | None = None,
 ) -> Worker:
     context = WorkerContext(
         pool=pool,
         capturer=cast(PageCapturer, capturer),
         storage=storage,
-        settings=get_settings(),
+        email=email or ConsoleEmailSender(),
+        settings=settings or get_settings(),
     )
     return Worker(
         context,

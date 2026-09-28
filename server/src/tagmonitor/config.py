@@ -5,7 +5,7 @@ production overrides them through the environment.
 """
 
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -39,6 +39,19 @@ class Settings(BaseSettings):
 
     # Capture slots per worker process (PRD §12).
     worker_concurrency: int = 3
+
+    # Alerts (PRD §13). The confirmation re-check runs this long after a first failure.
+    confirm_delay_seconds: int = 600
+    # Used for the "See details" link in emails.
+    app_base_url: str = "http://localhost:3001"
+    email_backend: Literal["console", "smtp", "resend"] = "console"
+    email_from: str = "tag-monitor <alerts@tagmonitor.local>"
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = False
+    resend_api_key: str | None = None
 
     @field_validator("ssrf_allow_hosts", mode="before")
     @classmethod

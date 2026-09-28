@@ -174,3 +174,33 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** A leader election (a single scheduler process) or Redis locks with TTLs: more moving parts, and TTL locks can expire while the holder still works. A `domain_locks` table with expiry timestamps: the same problem.
 
 **Consequences.** Locks vanish with their connection, which is the property we want for crash safety. The domain lock costs one pooled connection per running capture, so the worker pool is sized at `2 × concurrency + 4`. `hashtextextended` can collide for two domains, which would only mean an occasional needless 20 s wait.
+
+---
+
+## ADR-012: Confirm a failure with a re-check before alerting (M5)
+
+**Context.** Single page loads are noisy: a slow third-party script, a CDN hiccup or a deploy in progress can make a working pixel look broken once. An alert that cries wolf teaches owners to ignore alerts.
+
+**Decision.** Each (site, check) has a state machine (`alerts/state_machine.py`, pure and table-tested): `healthy → suspect` on the first failure, which enqueues a **confirmation capture 10 minutes later** (`CONFIRM_DELAY_SECONDS`); a second failure makes it `alerting` and sends one email; a pass while suspect is logged as a flake with no email. While alerting, repeated failures stay silent except a reminder once 24 h have passed since the last email; a pass sends one recovery email. Warnings never alert. `error` results ("couldn't evaluate") change nothing. One confirmation job per site covers every check that just turned suspect. The site's `site:<id>` dedupe key keeps it from piling up with scheduled checks.
+
+**Alternatives considered.**
+- Alert on the first failure: fastest, but flaky.
+- Require N failures in a row at the normal interval: with daily checks, that means days of delay.
+- Retry inside the same job: a few seconds later is often the same transient problem.
+
+**Consequences.** A real breakage is reported about 10 minutes after we first see it. Flakes cost one extra page load and no email. The PRD test scenarios hold (tested against the database): flaky → 0 alerts; five failures over two days → 1 failure + 1 reminder; recovery → 1 recovery.
+
+---
+
+## ADR-013: Transactional outbox for alerts (M5)
+
+**Context.** Saving results, changing alert state and sending an email are three steps that can fail independently. Sending inside the results transaction risks emailing about results that then roll back. Sending after commit risks a crash between commit and send, which loses the alert.
+
+**Decision.** In the **same transaction** that saves a job's results (and marks the job succeeded), `alerts/outbox.py` updates the state rows, inserts the alert with the email already rendered, and enqueues a `send_alert` job. A separate job delivers it and sets `sent_at` only after the provider accepts the message. Idempotency:
+- `alerts.dedupe_key` is unique: `site:check:kind:<state_entered_at>` for failures and recoveries. Reminders use the time of the alert they follow, since every reminder in one incident shares `state_entered_at` (the PRD's key would allow only one reminder ever per incident).
+- The send job skips alerts already marked sent.
+- Resend gets the dedupe key as its `Idempotency-Key`; SMTP gets it as the `Message-ID`.
+
+**Alternatives considered.** Sending from the capture job directly (loses or duplicates alerts as described above). A separate message broker (a second system for what one table and the existing queue already do).
+
+**Consequences.** An alert is committed if and only if its results are, and it's delivered at least once; the provider-side idempotency key makes a duplicate unlikely even if a retry re-sends after a crash. Email content is frozen at alert time, so later edits to explanations don't rewrite history. The "last worked / failing since" lines come from a window-function query (`lag()` to find where the current failing streak began) over the check history.

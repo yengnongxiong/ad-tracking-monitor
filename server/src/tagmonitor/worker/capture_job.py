@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from psycopg.types.json import Jsonb
 
+from tagmonitor.alerts.outbox import apply_results, worst_results
 from tagmonitor.browser.capturer import CaptureError
 from tagmonitor.browser.ssrf import SsrfError
 from tagmonitor.checks.base import CheckResult
@@ -77,6 +78,10 @@ async def run_capture_job(job: Job, ctx: WorkerContext) -> None:
         # Completing inside the same transaction: if another worker has taken the job over
         # (LostLease), the results above roll back instead of being saved twice.
         await complete(conn, job)
+        # Alert states, alerts and their delivery jobs commit together with the results
+        # (transactional outbox, ADR-013).
+        observed = worst_results([run.results for run in runs])
+        await apply_results(conn, site, observed, datetime.now(UTC), ctx.settings)
 
 
 async def capture_device(ctx: WorkerContext, job: Job, site: Site, device: Device) -> DeviceRun:

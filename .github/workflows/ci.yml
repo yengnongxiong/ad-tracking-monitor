@@ -22,8 +22,14 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
+      mailpit:
+        image: axllent/mailpit:v1.31.3
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       DATABASE_URL: postgresql://tagmonitor:tagmonitor@localhost:5432/tagmonitor
+      MAILPIT_URL: http://localhost:8025
     defaults:
       run:
         working-directory: server

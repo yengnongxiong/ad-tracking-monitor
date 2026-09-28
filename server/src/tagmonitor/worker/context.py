@@ -3,6 +3,7 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from tagmonitor.alerts.senders import EmailSender
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import Settings
 from tagmonitor.db.pool import Pool
@@ -15,6 +16,7 @@ class WorkerContext:
     pool: Pool
     capturer: PageCapturer
     storage: ObjectStorage
+    email: EmailSender
     settings: Settings
 
 

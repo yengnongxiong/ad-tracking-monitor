@@ -19,6 +19,11 @@ x-server: &server
     S3_PUBLIC_ENDPOINT_URL: http://localhost:${MINIO_PORT:-9000}
     S3_ACCESS_KEY: ${MINIO_ROOT_USER:-tagmonitor}
     S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-tagmonitor-dev-secret}
+    # Alert emails go to Mailpit (http://localhost:8025) in development.
+    EMAIL_BACKEND: smtp
+    SMTP_HOST: mailpit
+    SMTP_PORT: 1025
+    MAILPIT_URL: http://mailpit:8025
   volumes:
     - ./server/src:/app/server/src
     - ./db:/app/db
