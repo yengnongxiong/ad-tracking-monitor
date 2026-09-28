@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meta pixel with a different id</title>
+  <meta name="description" content="Fresh coffee beans roasted to order. 20% off your first bag.">
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '444444444444444');
+    fbq('track', 'PageView');
+  </script>
+</head>
+<body>
+  <h1>Fresh coffee, roasted this week</h1>
+  <p>Hand-roasted beans, delivered in 48 hours.</p>
+  <a href="/shop" class="cta">Get 20% off your first bag</a>
+  
+</body>
+</html>

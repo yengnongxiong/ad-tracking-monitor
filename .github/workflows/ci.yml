@@ -35,6 +35,8 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: uv sync --frozen
+      - name: Install Chromium for Playwright
+        run: uv run playwright install --with-deps chromium
       - name: ruff
         run: uv run ruff check . && uv run ruff format --check .
       - name: mypy

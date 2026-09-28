@@ -5,16 +5,25 @@ the session fixture creates a separate `<dbname>_test` database from scratch, mi
 each test that asks for `db` starts from empty tables.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from uuid import uuid4
 
 import pytest
 from psycopg import AsyncConnection, sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
+from tagmonitor.browser.capturer import PageCapturer
+from tagmonitor.browser.ssrf import SsrfPolicy
 from tagmonitor.config import get_settings
 from tagmonitor.db.migrate import migrate
 from tagmonitor.db.pool import Pool, create_pool
+from tests.fixture_server import FIXTURE_HOST, FixtureServer, StaticResolver
+
+# Tests load fixture sites from fixtures.test (127.0.0.1). Only that exact name is exempt from
+# the SSRF guard, and it is the only name the test resolver knows, so no request can reach
+# the internet: every other hostname fails to resolve and the egress proxy refuses it.
+TEST_POLICY = SsrfPolicy(allow_hosts=frozenset({FIXTURE_HOST}))
+TEST_RESOLVER = StaticResolver({FIXTURE_HOST: ["127.0.0.1"]})
 
 
 async def create_database(name: str) -> str:
@@ -73,3 +82,20 @@ async def empty_database_url() -> AsyncIterator[str]:
         yield url
     finally:
         await drop_database(name)
+
+
+@pytest.fixture(scope="session")
+def fixture_server() -> Iterator[FixtureServer]:
+    server = FixtureServer()
+    server.start()
+    yield server
+    server.stop()
+
+
+@pytest.fixture(scope="session")
+async def capturer() -> AsyncIterator[PageCapturer]:
+    """One browser for the whole session, with tracking stubs, like a worker in tests."""
+    async with PageCapturer(
+        policy=TEST_POLICY, resolver=TEST_RESOLVER, tracking_stubs=True
+    ) as capturer:
+        yield capturer

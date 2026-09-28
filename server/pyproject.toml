@@ -9,6 +9,9 @@ dependencies = [
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "psycopg[binary,pool]>=3.3.6",
+    "playwright==1.63.0",
+    "typer>=0.27.2",
+    "rich>=15.0.0",
 ]
 
 [dependency-groups]
@@ -39,9 +42,14 @@ select = [
     "S",            # security (e.g. S608 flags SQL built from strings)
     "RUF",
 ]
+# Asserts state internal invariants (mostly for type narrowing); we never run with -O, and
+# security-relevant checks always raise explicit exceptions instead.
+ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # plain asserts are how pytest works
+# The SSRF tests list addresses like 0.0.0.0 as data, not as bind addresses.
+"tests/**" = ["S104"]
+
 
 [tool.mypy]
 strict = true
