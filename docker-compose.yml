@@ -1,0 +1,111 @@
+# Local development stack. `make dev` starts everything; see the Makefile for the other targets.
+# Host ports come from .env (defaults avoid clashing with abtest-platform's 5432/8000/3000).
+name: tag-monitor
+
+x-server: &server
+  build:
+    context: .
+    dockerfile: server/Dockerfile
+    target: dev
+  image: tagmonitor-server:dev
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    # Inside the compose network, services are reached by name, not via localhost ports.
+    DATABASE_URL: postgresql://${POSTGRES_USER:-tagmonitor}:${POSTGRES_PASSWORD:-tagmonitor}@postgres:5432/${POSTGRES_DB:-tagmonitor}
+  volumes:
+    - ./server/src:/app/server/src
+    - ./db:/app/db
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tagmonitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tagmonitor}
+      POSTGRES_DB: ${POSTGRES_DB:-tagmonitor}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  minio:
+    # Community build of MinIO; the official image left Docker Hub (docs/decisions.md, ADR-001).
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tagmonitor}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tagmonitor-dev-secret}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+  api:
+    <<: *server
+    command: ["uvicorn", "tagmonitor.api.app:app", "--host", "0.0.0.0", "--port", "8000",
+              "--reload", "--reload-dir", "src"]
+    ports:
+      - "${API_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    <<: *server
+    command: ["python", "-m", "tagmonitor.worker"]
+    # Two containers pulling from the same Postgres queue prove horizontal scaling (PRD §12).
+    deploy:
+      replicas: 2
+
+  web:
+    build: ./web
+    image: tagmonitor-web:dev
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-3001}:3000"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+
+  # `make test` runs the Python suite here, against the postgres/minio/mailpit services above.
+  tests:
+    <<: *server
+    profiles: ["test"]
+    command: ["pytest"]
+    volumes:
+      - ./server/src:/app/server/src
+      - ./server/tests:/app/server/tests
+      - ./db:/app/db
+
+volumes:
+  pgdata:
+  miniodata:
