@@ -1,0 +1,65 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/redirect_to_private_ip/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:56.161324Z",
+  "duration_ms": 60.15649000028134,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/redirect_to_private_ip/",
+    "final_url": "http://127.0.0.1:46699/internal/secret",
+    "redirect_chain": [
+      "http://fixtures.test:46699/redirect_to_private_ip/"
+    ],
+    "status": null,
+    "load_event_fired": true,
+    "error_code": "ssrf_blocked",
+    "error": "refused by egress proxy: ssrf_blocked"
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/redirect_to_private_ip/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 302,
+      "failure": null,
+      "started_ms": 40.08640300025945,
+      "duration_ms": 4.165356999692449,
+      "response_bytes": 164,
+      "post_data": null
+    },
+    {
+      "url": "http://127.0.0.1:46699/internal/secret",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 403,
+      "failure": "refused by egress proxy: ssrf_blocked",
+      "started_ms": 44.61517700019613,
+      "duration_ms": 12.907862999782083,
+      "response_bytes": 191,
+      "post_data": null
+    }
+  ],
+  "blocked": [
+    {
+      "host": "127.0.0.1",
+      "port": 46699,
+      "code": "ssrf_blocked",
+      "detail": "127.0.0.1 points to a non-public address (127.0.0.1)"
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ],
+  "page_errors": [],
+  "dom": null,
+  "performance": {
+    "lcp_ms": null,
+    "layout_shift": null,
+    "load_ms": null,
+    "transfer_bytes": 355,
+    "request_count": 2
+  },
+  "screenshot_key": null
+}

@@ -1,0 +1,91 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/meta_duplicate_pageview/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:39.024385Z",
+  "duration_ms": 2145.4436609997174,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/meta_duplicate_pageview/",
+    "final_url": "http://fixtures.test:46699/meta_duplicate_pageview/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/meta_duplicate_pageview/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 41.15554999998494,
+      "duration_ms": 14.93734099994981,
+      "response_bytes": 1250,
+      "post_data": null
+    },
+    {
+      "url": "https://connect.facebook.net/en_US/fbevents.js",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 55.4249459996754,
+      "duration_ms": 5.679694000264135,
+      "response_bytes": 1148,
+      "post_data": null
+    },
+    {
+      "url": "https://www.facebook.com/tr/?id=333333333333333&ev=PageView&dl=http%3A%2F%2Ffixtures.test%3A46699%2Fmeta_duplicate_pageview%2F&ts=1790637939084&n=1",
+      "method": "GET",
+      "resource_type": "image",
+      "status": 200,
+      "failure": null,
+      "started_ms": 63.469276999967406,
+      "duration_ms": 3.7884159996792732,
+      "response_bytes": 101,
+      "post_data": null
+    },
+    {
+      "url": "https://www.facebook.com/tr/?id=333333333333333&ev=PageView&dl=http%3A%2F%2Ffixtures.test%3A46699%2Fmeta_duplicate_pageview%2F&ts=1790637939084&n=2",
+      "method": "GET",
+      "resource_type": "image",
+      "status": 200,
+      "failure": null,
+      "started_ms": 63.97384299998521,
+      "duration_ms": 3.807042999596888,
+      "response_bytes": 101,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "Meta pixel installed twice",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 28.0,
+    "layout_shift": 0.0,
+    "load_ms": 27.899999999906868,
+    "transfer_bytes": 2600,
+    "request_count": 4
+  },
+  "screenshot_key": null
+}

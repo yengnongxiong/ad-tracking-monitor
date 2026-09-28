@@ -1,0 +1,69 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/meta_not_firing/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:41.175726Z",
+  "duration_ms": 2125.0688479999553,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/meta_not_firing/",
+    "final_url": "http://fixtures.test:46699/meta_not_firing/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/meta_not_firing/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 34.8997920000329,
+      "duration_ms": 11.7670449999423,
+      "response_bytes": 1112,
+      "post_data": null
+    },
+    {
+      "url": "https://connect.facebook.net/en_US/fbevents.js",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 47.10328400005892,
+      "duration_ms": 6.632779000028677,
+      "response_bytes": 1148,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "Meta pixel installed but never tracks",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 20.0,
+    "layout_shift": 0.0,
+    "load_ms": 18.5,
+    "transfer_bytes": 2260,
+    "request_count": 2
+  },
+  "screenshot_key": null
+}

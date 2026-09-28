@@ -1,0 +1,60 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/http_500/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:34.738761Z",
+  "duration_ms": 2128.774954000164,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/http_500/",
+    "final_url": "http://fixtures.test:46699/http_500/",
+    "redirect_chain": [],
+    "status": 500,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/http_500/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 500,
+      "failure": null,
+      "started_ms": 39.22990299997764,
+      "duration_ms": 12.65057099999467,
+      "response_bytes": 648,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ],
+  "page_errors": [],
+  "dom": {
+    "title": "Internal server error",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Something went wrong on our end. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 24.0,
+    "layout_shift": 0.0,
+    "load_ms": 14.399999999906868,
+    "transfer_bytes": 648,
+    "request_count": 1
+  },
+  "screenshot_key": null
+}

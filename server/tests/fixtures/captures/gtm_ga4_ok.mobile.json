@@ -1,0 +1,91 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/gtm_ga4_ok/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:32.593654Z",
+  "duration_ms": 2139.143993000289,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/gtm_ga4_ok/",
+    "final_url": "http://fixtures.test:46699/gtm_ga4_ok/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/gtm_ga4_ok/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 39.95175599993672,
+      "duration_ms": 13.487504000295303,
+      "response_bytes": 1007,
+      "post_data": null
+    },
+    {
+      "url": "https://www.googletagmanager.com/gtm.js?id=GTM-GTMTEST",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 53.988112000297406,
+      "duration_ms": 6.774225999834016,
+      "response_bytes": 560,
+      "post_data": null
+    },
+    {
+      "url": "https://www.googletagmanager.com/gtag/js?id=G-GTMTEST",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 62.51335900014965,
+      "duration_ms": 4.489535000175238,
+      "response_bytes": 1844,
+      "post_data": null
+    },
+    {
+      "url": "https://region1.google-analytics.com/g/collect?v=2&tid=G-GTMTEST&en=page_view&dl=http%3A%2F%2Ffixtures.test%3A46699%2Fgtm_ga4_ok%2F",
+      "method": "POST",
+      "resource_type": "ping",
+      "status": 204,
+      "failure": null,
+      "started_ms": 67.65678800002206,
+      "duration_ms": 3.6212380000506528,
+      "response_bytes": 130,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "GA4 through GTM",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 28.0,
+    "layout_shift": 0.0,
+    "load_ms": 28.100000000093132,
+    "transfer_bytes": 3541,
+    "request_count": 4
+  },
+  "screenshot_key": null
+}

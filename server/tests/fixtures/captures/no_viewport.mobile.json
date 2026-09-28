@@ -1,0 +1,58 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/no_viewport/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:51.858680Z",
+  "duration_ms": 2141.180353999971,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/no_viewport/",
+    "final_url": "http://fixtures.test:46699/no_viewport/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/no_viewport/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 37.58723600003577,
+      "duration_ms": 10.131169000032969,
+      "response_bytes": 568,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "Missing viewport meta",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": null,
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 981,
+    "inner_width": 981,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 20.0,
+    "layout_shift": 0.0,
+    "load_ms": 12.200000000186265,
+    "transfer_bytes": 568,
+    "request_count": 1
+  },
+  "screenshot_key": null
+}

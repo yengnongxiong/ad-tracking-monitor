@@ -1,0 +1,80 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/meta_wrong_id/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:45.438342Z",
+  "duration_ms": 2132.0768850000604,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/meta_wrong_id/",
+    "final_url": "http://fixtures.test:46699/meta_wrong_id/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/meta_wrong_id/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 37.30371000028754,
+      "duration_ms": 11.87474900007146,
+      "response_bytes": 1135,
+      "post_data": null
+    },
+    {
+      "url": "https://connect.facebook.net/en_US/fbevents.js",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 49.57545900015248,
+      "duration_ms": 5.022374999953172,
+      "response_bytes": 1148,
+      "post_data": null
+    },
+    {
+      "url": "https://www.facebook.com/tr/?id=444444444444444&ev=PageView&dl=http%3A%2F%2Ffixtures.test%3A46699%2Fmeta_wrong_id%2F&ts=1790637945492&n=1",
+      "method": "GET",
+      "resource_type": "image",
+      "status": 200,
+      "failure": null,
+      "started_ms": 55.34965100014233,
+      "duration_ms": 2.5456050002503616,
+      "response_bytes": 101,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "Meta pixel with a different id",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag",
+    "button_texts": [
+      "Get 20% off your first bag"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 24.0,
+    "layout_shift": 0.0,
+    "load_ms": 21.5,
+    "transfer_bytes": 2384,
+    "request_count": 3
+  },
+  "screenshot_key": null
+}

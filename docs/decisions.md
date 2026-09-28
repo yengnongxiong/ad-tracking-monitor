@@ -94,3 +94,33 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 - Integers everywhere: compact, but `/api/sites/42` invites guessing neighbouring ids. Every query is scoped by `user_id` anyway (the real IDOR defense), so this is defense in depth, not the defense.
 
 **Consequences.** Sites and users can't be enumerated from URLs. Run and result ids are guessable, but every query that reads them joins through `sites.user_id`, and the M6 IDOR tests check exactly that.
+
+---
+
+## ADR-008: Detect tags by observing network requests, not by searching the HTML (M3)
+
+**Context.** The easy way to "check for a Meta Pixel" is to search the page source for `fbq(` or a pixel id. That answers "is the code there?", not "does it work?", and the second question is the one that costs money. Tags break in ways the HTML doesn't show: a consent tool that never lets them run, a JavaScript error earlier on the page, a script blocked by a Content-Security-Policy, a Tag Manager container that wasn't published, a snippet that sets the pixel up but never tracks, or the pixel installed twice.
+
+**Decision.** Load the page in a real browser, record every request it makes (M2), and decide from the traffic: did `fbevents.js` load, did a `facebook.com/tr?…ev=PageView` hit leave the browser, and how many times? Same for gtag.js/GTM and the GA4 `/g/collect` and Google Ads endpoints. The patterns live in `checks/tracking_patterns.py` with unit tests on real-shaped URLs and POST bodies (GET beacons, urlencoded and multipart POSTs, batched GA4 events). The verdict logic shared by the three tag checks is one ordered question list (`checks/tag_verdict.py`), so the statuses mean the same thing for every vendor.
+
+**Alternatives considered.**
+- HTML/regex search: fast and simple, but it misses exactly the failures we exist to catch, and it's fooled by tags injected at runtime (GTM).
+- Reading the tags' JavaScript globals (`window.fbq`, `dataLayer`): closer, but a global can exist while nothing is sent, and it ties us to each vendor's internals.
+
+**Consequences.**
+- "Installed but not firing", "script blocked" and "duplicate PageView" are detectable at all, which is the point of the product.
+- The endpoints are undocumented and change over time. Mitigations: patterns in one module, unit tests, and `python -m tagmonitor.verify_patterns <urls>`, which lists requests to tag hosts that matched no pattern (how a moved endpoint shows up).
+- Tags we can't see from a browser stay invisible: the Conversions API (server-side), and GA4 sent through a first-party server-side container on the site's own domain. Both are documented limitations.
+- A hit counts as "sent" when it left the browser (no network failure), whatever the vendor answered: the vendor received it.
+
+---
+
+## ADR-009: Google tags are three checks (GA4, Ads, GTM), not one check with sub-results (M3)
+
+**Context.** The PRD describes one GoogleTagCheck that "returns separate sub-results for GA4, Google Ads, and GTM". But results and alert state are keyed by a single `check_key` (§11, §13), so one check could only raise one alert for any Google problem, and a second problem while the first was still alerting would go unnoticed.
+
+**Decision.** Three check classes with three keys (`google_ga4`, `google_ads`, `google_gtm`) in one module (`checks/google_tags.py`), sharing the parsers. Each has its own alert state and email ("Your GA4 tag stopped firing"). The dashboard's single "Google" status dot (§18) shows the worst of the three.
+
+**Alternatives considered.** One check whose `details` hold three sub-results: matches the PRD's wording, but blurs alerts ("something Google broke") and hides a second failure behind the first.
+
+**Consequences.** Seven check keys instead of five. GTM has no "expected IDs" field in the schema, so a missing container is only `info`; if the owner set expected GA4 IDs, the GA4 check still fails when a missing container takes GA4 down with it. A `GT-` "Google tag" can route to GA4 or Ads destinations we can't see, so it's attributed by the ids its hits carry, never assumed.

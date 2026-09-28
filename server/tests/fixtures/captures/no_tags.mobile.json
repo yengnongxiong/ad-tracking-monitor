@@ -1,0 +1,61 @@
+{
+  "capture_schema_version": 1,
+  "url": "http://fixtures.test:46699/no_tags/",
+  "device": "mobile",
+  "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
+  "throttling": "none",
+  "started_at": "2026-09-28T23:25:49.723664Z",
+  "duration_ms": 2129.431641999872,
+  "navigation": {
+    "requested_url": "http://fixtures.test:46699/no_tags/",
+    "final_url": "http://fixtures.test:46699/no_tags/",
+    "redirect_chain": [],
+    "status": 200,
+    "load_event_fired": true,
+    "error_code": null,
+    "error": null
+  },
+  "requests": [
+    {
+      "url": "http://fixtures.test:46699/no_tags/",
+      "method": "GET",
+      "resource_type": "document",
+      "status": 200,
+      "failure": null,
+      "started_ms": 38.64779199966506,
+      "duration_ms": 12.713895000160846,
+      "response_bytes": 735,
+      "post_data": null
+    }
+  ],
+  "blocked": [],
+  "console_errors": [],
+  "page_errors": [],
+  "dom": {
+    "title": "No tags at all",
+    "meta_description": "Fresh coffee beans roasted to order. 20% off your first bag.",
+    "viewport_meta": "width=device-width, initial-scale=1",
+    "h1": [
+      "Fresh coffee, roasted this week"
+    ],
+    "h2": [
+      "Our story"
+    ],
+    "above_fold_text": "Fresh coffee, roasted this week Hand-roasted beans, delivered in 48 hours. Get 20% off your first bag Our story Small-batch roasting since 2019. Subscribe",
+    "button_texts": [
+      "Get 20% off your first bag",
+      "Subscribe"
+    ],
+    "scroll_width": 412,
+    "inner_width": 412,
+    "viewport_width": 412
+  },
+  "performance": {
+    "lcp_ms": 28.0,
+    "layout_shift": 0.0,
+    "load_ms": 14.600000000093132,
+    "transfer_bytes": 735,
+    "request_count": 1
+  },
+  "screenshot_key": null
+}

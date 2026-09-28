@@ -1,7 +1,7 @@
 # Common tasks. Everything runs in Docker, so the only host requirements are Docker and make.
 COMPOSE := docker compose
 
-.PHONY: help dev down migrate test lint fmt
+.PHONY: help dev down migrate test lint fmt check
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -28,3 +28,7 @@ lint: .env ## ruff, mypy, eslint, tsc
 
 fmt: .env ## Auto-format and auto-fix Python code
 	$(COMPOSE) run --rm --no-deps tests sh -c "ruff format . && ruff check --fix ."
+
+check: .env ## Capture one URL on mobile and desktop and print a report: make check URL=https://...
+	@test -n "$(URL)" || (echo "usage: make check URL=https://example.com" && exit 1)
+	$(COMPOSE) run --rm --no-deps api python -m tagmonitor.check "$(URL)"
