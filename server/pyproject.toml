@@ -13,10 +13,12 @@ dependencies = [
     "typer>=0.27.2",
     "rich>=15.0.0",
     "tldextract>=5.3.2",
+    "boto3>=1.43.104",
 ]
 
 [dependency-groups]
 dev = [
+    "boto3-stubs[s3]>=1.43.104",
     "httpx>=0.28.1",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
@@ -48,8 +50,9 @@ select = [
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
-# The SSRF tests list addresses like 0.0.0.0 as data, not as bind addresses.
-"tests/**" = ["S104"]
+# The SSRF tests list addresses like 0.0.0.0 as data, not as bind addresses; tests use
+# seeded `random` for reproducible jitter checks.
+"tests/**" = ["S104", "S311"]
 
 
 [tool.mypy]

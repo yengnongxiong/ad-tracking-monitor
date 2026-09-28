@@ -86,8 +86,14 @@ class PageCapturer:
         self.relaunch_after = relaunch_after
         self.browser_launches = 0
         self._playwright: Playwright | None = None
-        self._browser: Browser | None = None
+        self._browser: Browser | None = None  # the browser new captures get
         self._captures_on_browser = 0
+        # Several captures share one browser (WORKER_CONCURRENCY), so a browser being replaced
+        # must not be closed under captures still using it: it is "retired" and closed when
+        # its last capture finishes.
+        self._in_use: dict[Browser, int] = {}
+        self._retired: set[Browser] = set()
+        self._lock = asyncio.Lock()
 
     async def __aenter__(self) -> Self:
         self._playwright = await async_playwright().start()
@@ -99,31 +105,48 @@ class PageCapturer:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
-        await self._close_browser()
+        for browser in {self._browser, *self._retired, *self._in_use} - {None}:
+            assert browser is not None
+            await _close_quietly(browser)
         if self._playwright is not None:
             await self._playwright.stop()
 
-    async def _close_browser(self) -> None:
-        if self._browser is not None:
-            with contextlib.suppress(PlaywrightError):
-                await self._browser.close()
-            self._browser = None
-
-    async def _get_browser(self) -> Browser:
+    async def _acquire_browser(self) -> Browser:
         assert self._playwright is not None, "use `async with PageCapturer(...)`"
-        needs_launch = (
-            self._browser is None
-            or not self._browser.is_connected()
-            or self._captures_on_browser >= self.relaunch_after
-        )
-        if needs_launch:
-            await self._close_browser()
-            self._browser = await self._playwright.chromium.launch(args=CHROMIUM_ARGS)
-            self._captures_on_browser = 0
-            self.browser_launches += 1
-        assert self._browser is not None
-        self._captures_on_browser += 1
-        return self._browser
+        async with self._lock:
+            current = self._browser
+            if current is not None and (
+                not current.is_connected() or self._captures_on_browser >= self.relaunch_after
+            ):
+                await self._retire(current)
+                current = None
+            if current is None:
+                current = await self._playwright.chromium.launch(args=CHROMIUM_ARGS)
+                self._browser = current
+                self._captures_on_browser = 0
+                self.browser_launches += 1
+            self._captures_on_browser += 1
+            self._in_use[current] = self._in_use.get(current, 0) + 1
+            return current
+
+    async def _release_browser(self, browser: Browser) -> None:
+        async with self._lock:
+            self._in_use[browser] -= 1
+            if self._in_use[browser] == 0:
+                del self._in_use[browser]
+                if browser in self._retired:
+                    self._retired.discard(browser)
+                    await _close_quietly(browser)
+
+    async def _retire(self, browser: Browser) -> None:
+        """Stop handing out `browser`; close it now if idle, otherwise when its last capture ends.
+        Caller holds self._lock."""
+        if self._browser is browser:
+            self._browser = None
+        if self._in_use.get(browser, 0) == 0:
+            await _close_quietly(browser)
+        else:
+            self._retired.add(browser)
 
     async def capture(self, url: str, device: Device) -> CaptureResult:
         """Capture one URL on one device.
@@ -133,7 +156,7 @@ class PageCapturer:
         CaptureError. An invalid user URL raises SsrfError before the browser is involved.
         """
         validate_user_url(url, self.policy)
-        browser = await self._get_browser()
+        browser = await self._acquire_browser()
         try:
             async with asyncio.timeout(HARD_TIMEOUT_S):
                 return await self._capture(browser, url, device)
@@ -142,10 +165,11 @@ class PageCapturer:
                 "capture_timeout", f"capture exceeded {HARD_TIMEOUT_S:.0f} s", transient=True
             ) from exc
         except PlaywrightError as exc:
-            if not browser.is_connected():
-                self._browser = None
-                raise CaptureError("browser_crash", str(exc), transient=True) from exc
-            raise CaptureError("capture_failed", str(exc), transient=True) from exc
+            # A crashed browser is replaced on the next acquire (it reports not connected).
+            code = "capture_failed" if browser.is_connected() else "browser_crash"
+            raise CaptureError(code, str(exc), transient=True) from exc
+        finally:
+            await self._release_browser(browser)
 
     async def _capture(self, browser: Browser, url: str, device: Device) -> CaptureResult:
         assert self._playwright is not None
@@ -224,12 +248,19 @@ class PageCapturer:
                 )
                 return CaptureResult(capture=capture, screenshot_jpeg=screenshot)
             finally:
-                # A wedged browser must not hang the worker; the next capture relaunches it.
+                # A wedged browser must not hang the worker: retire it so the next capture
+                # gets a fresh one.
                 try:
                     await asyncio.wait_for(context.close(), 10)
                 except (TimeoutError, PlaywrightError):
                     log.warning("could not close browser context; relaunching browser")
-                    await self._close_browser()
+                    async with self._lock:
+                        await self._retire(browser)
+
+
+async def _close_quietly(browser: Browser) -> None:
+    with contextlib.suppress(PlaywrightError):
+        await browser.close()
 
 
 def _append_unique(messages: list[str], message: str) -> None:

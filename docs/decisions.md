@@ -83,6 +83,21 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 
 ---
 
+## ADR-006: Website failures are data; only our own failures are job failures (M4)
+
+**Context.** §12 lists "timeout, DNS failure, connection reset, 5xx" as transient job failures to retry, and §10 says the same things make Page health fail. If a down website made the job retry and then die, no result would ever be saved, the alert state machine would never see a failure, and **a site that's down would never alert**, which is the most important alert of all.
+
+**Decision.** Two kinds of failure, handled in different places:
+- **The website failed** (DNS, timeout, refused connection, HTTP 5xx): the capture succeeds *at observing a failure*. It's recorded in the PageCapture (`navigation.error_code`), saved as a completed run, and Page health reports it. The other checks say "not evaluated", so one outage produces one alert. Flakiness is handled by the confirmation re-check (M5), not by job retries.
+- **Our machinery failed** (browser crash, 60 s capture budget exceeded, storage or database errors): the job fails *transiently* and retries with backoff. After `max_attempts` it's dead, and an error run records why.
+- **Permanent:** an invalid URL, or a URL that resolves or redirects to a private address (`ssrf_blocked`), goes dead immediately, as §12 says, with an error run for the UI.
+
+**Alternatives considered.** Retrying website failures as the PRD's wording suggests: it hides outages behind retries, then drops them.
+
+**Consequences.** A down site produces a result within one job, and the alert follows the normal suspect → confirm → alert path. Job retries stay reserved for things a retry can actually fix.
+
+---
+
 ## ADR-007: UUIDs for rows that appear in URLs, bigint identity for high-volume rows (M1)
 
 **Context.** The PRD fixes `jobs.id` as `bigserial` and leaves the other id types open. Ids appear in API paths (`/api/sites/{id}`) and in the database's hottest indexes.
@@ -124,3 +139,38 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** One check whose `details` hold three sub-results: matches the PRD's wording, but blurs alerts ("something Google broke") and hides a second failure behind the first.
 
 **Consequences.** Seven check keys instead of five. GTM has no "expected IDs" field in the schema, so a missing container is only `info`; if the owner set expected GA4 IDs, the GA4 check still fails when a missing container takes GA4 down with it. A `GT-` "Google tag" can route to GA4 or Ads destinations we can't see, so it's attributed by the ids its hits carry, never assumed.
+
+
+---
+
+## ADR-010: The job queue lives in Postgres (M4)
+
+**Context.** Workers need a queue with priorities, delayed retries, deduplication, crash recovery and horizontal scaling. The usual answer is Redis plus Celery, RQ or Sidekiq.
+
+**Decision.** A `jobs` table and about 200 lines in `queue/jobs.py`:
+- **Claiming** is PRD §12's single `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED LIMIT n) RETURNING *`. SKIP LOCKED makes concurrent claimers skip rows another transaction holds instead of waiting, so no job goes out twice and nobody blocks. A test drains 400 jobs with 20 concurrent claimers and checks every job was claimed exactly once.
+- **Leases with fencing.** A claimed job is leased to `(id, locked_by, attempts)`, and every later write (complete, fail, release, heartbeat) must match that whole token. If a worker stalls long enough for the reaper to requeue its job and another worker claims it, the stale worker's late `complete()` updates zero rows and raises `LostLease`. Because completion shares a transaction with saving results, the stale results roll back too.
+- **Retries:** transient failures return to `queued` with `min(30 s × 2^(attempts−1), 30 min) ± 20%` backoff. Permanent failures, or running out of attempts, mean `dead`. `last_error` is always kept.
+- **Crash recovery:** a heartbeat every 15 s; the reaper requeues jobs silent for 2 minutes. The crashed attempt counts, so a "poison pill" job that kills its worker ends up dead instead of taking down the fleet.
+- **Dedupe:** a partial unique index on `dedupe_key WHERE status IN ('queued','running')` means one active capture per site, enforced by the database.
+
+**Alternatives considered.**
+- Redis + Celery/RQ: very fast, but a second datastore to run and back up, and job state lives apart from the data it's about. Enqueuing a job in the same transaction as the data that caused it (the outbox in M5, the confirm re-check) would need two-phase tricks.
+- A managed queue (SQS, Cloud Tasks): no local story without emulators, and it has the same transaction split.
+
+**Consequences.** One datastore; jobs enqueue atomically with business data; queue state is plain SQL for debugging and the ops page. The limit is throughput: Postgres queues handle thousands of jobs per second, and our jobs take seconds each (browser time), so the database is nowhere near the bottleneck at this scale (M10 benchmarks this). Polling every second when idle costs a trivial query; LISTEN/NOTIFY could make pickup instant if that ever matters.
+
+---
+
+## ADR-011: Advisory locks for the scheduler, the reaper, and per-domain politeness (M4)
+
+**Context.** Every worker runs the scheduler and reaper loops (so there's no single "scheduler box" to keep alive), but only one should tick at a time. Separately, two workers must never load pages from the same website at once (politeness, and not getting our IPs blocked).
+
+**Decision.**
+- Scheduler and reaper ticks take a **transaction-scoped** `pg_try_advisory_xact_lock(7311, n)`. Whoever gets it ticks; the others skip. It's released automatically at commit or rollback, so a crashed worker can't hold it. Correctness doesn't depend on the lock: the due-sites query uses SKIP LOCKED and the insert is deduplicated, so the lock only saves wasted work.
+- Captures take a **session-scoped** `pg_try_advisory_lock(hashtextextended(registrable_domain, 0))` on a connection held for the whole capture (both devices). If it's taken, the job is released for 20 s **without using an attempt**, since being polite isn't a failure. The pool runs in autocommit mode, so the connection holding the lock is idle, not "idle in transaction" (no snapshot held, vacuum unaffected).
+- Key spaces: the two-int form (scheduler, reaper, migrations) and the one-bigint form (domains) are separate lock spaces in Postgres, so they can't collide.
+
+**Alternatives considered.** A leader election (a single scheduler process) or Redis locks with TTLs: more moving parts, and TTL locks can expire while the holder still works. A `domain_locks` table with expiry timestamps: the same problem.
+
+**Consequences.** Locks vanish with their connection, which is the property we want for crash safety. The domain lock costs one pooled connection per running capture, so the worker pool is sized at `2 × concurrency + 4`. `hashtextextended` can collide for two domains, which would only mean an occasional needless 20 s wait.

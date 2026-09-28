@@ -17,6 +17,7 @@ from tagmonitor.browser.ssrf import SsrfPolicy
 from tagmonitor.config import get_settings
 from tagmonitor.db.migrate import migrate
 from tagmonitor.db.pool import Pool, create_pool
+from tagmonitor.storage import ObjectStorage
 from tests.fixture_server import FIXTURE_HOST, FixtureServer, StaticResolver
 
 # Tests load fixture sites from fixtures.test (127.0.0.1). Only that exact name is exempt from
@@ -99,3 +100,11 @@ async def capturer() -> AsyncIterator[PageCapturer]:
         policy=TEST_POLICY, resolver=TEST_RESOLVER, tracking_stubs=True
     ) as capturer:
         yield capturer
+
+
+@pytest.fixture(scope="session")
+async def storage() -> ObjectStorage:
+    """MinIO from docker compose, with a bucket of its own so tests never touch dev data."""
+    storage = ObjectStorage(get_settings(), bucket="tagmonitor-test")
+    await storage.ensure_bucket()
+    return storage

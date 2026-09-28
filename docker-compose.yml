@@ -14,6 +14,11 @@ x-server: &server
   environment:
     # Inside the compose network, services are reached by name, not via localhost ports.
     DATABASE_URL: postgresql://${POSTGRES_USER:-tagmonitor}:${POSTGRES_PASSWORD:-tagmonitor}@postgres:5432/${POSTGRES_DB:-tagmonitor}
+    S3_ENDPOINT_URL: http://minio:9000
+    # Presigned screenshot links are opened by your browser, which reaches MinIO via localhost.
+    S3_PUBLIC_ENDPOINT_URL: http://localhost:${MINIO_PORT:-9000}
+    S3_ACCESS_KEY: ${MINIO_ROOT_USER:-tagmonitor}
+    S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-tagmonitor-dev-secret}
   volumes:
     - ./server/src:/app/server/src
     - ./db:/app/db
@@ -88,7 +93,12 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      minio:
+        condition: service_healthy
     command: ["python", "-m", "tagmonitor.worker"]
+    # SIGTERM gives in-flight captures up to 75 s to finish (worker/runner.py) before Docker
+    # would kill the process, so allow a bit more than that.
+    stop_grace_period: 90s
     # Two containers pulling from the same Postgres queue prove horizontal scaling (PRD §12).
     deploy:
       replicas: 2

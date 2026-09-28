@@ -87,10 +87,12 @@ async def insert_run(
     return int(row["id"])
 
 
-async def insert_result(pool: Pool, run_id: int, check_key: str, status: str) -> None:
+async def insert_result(
+    pool: Pool, run_id: int, check_key: str, status: str, code: str = "test"
+) -> None:
     async with pool.connection() as conn:
         await conn.execute(
-            "INSERT INTO check_results (run_id, check_key, status, summary) "
-            "VALUES (%s, %s, %s, %s)",
-            (run_id, check_key, status, f"{check_key} is {status}"),
+            "INSERT INTO check_results (run_id, check_key, status, code, summary) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (run_id, check_key, status, code, f"{check_key} is {status}"),
         )

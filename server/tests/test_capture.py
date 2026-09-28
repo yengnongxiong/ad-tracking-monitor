@@ -1,5 +1,6 @@
 """Real Chromium captures of the fixture sites (PRD §14). No request leaves the machine."""
 
+import asyncio
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -221,3 +222,17 @@ async def test_slow4g_throttling_slows_the_page(fixture_server: FixtureServer) -
     assert result.throttling == "slow4g"
     assert result.performance.load_ms is not None
     assert result.performance.load_ms > 500  # one round trip alone costs 562.5 ms
+
+
+async def test_browser_relaunch_waits_for_captures_still_using_it(
+    fixture_server: FixtureServer,
+) -> None:
+    """With concurrent captures, replacing the browser must not kill the ones in flight."""
+    async with PageCapturer(
+        policy=TEST_POLICY, resolver=TEST_RESOLVER, relaunch_after=2
+    ) as capturer:
+        results = await asyncio.gather(
+            *(capturer.capture(fixture_server.url("slow_lcp"), "mobile") for _ in range(5))
+        )
+        assert all(r.capture.navigation.status == 200 for r in results)
+        assert capturer.browser_launches >= 3
