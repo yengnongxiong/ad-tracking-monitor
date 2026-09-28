@@ -43,3 +43,17 @@ Each entry follows Context / Decision / Alternatives considered / Consequences. 
 - Calling FastAPI only from Next.js server code: works, but duplicates every endpoint as a Next route.
 
 **Consequences.** Every API request takes one extra hop through the Next.js server. FastAPI sees the Next.js server as the client, so anything that needs the real client IP (the login rate limit, M6) must read `X-Forwarded-For` and trust it only from the web tier. In production builds (`next build`), the rewrite destination is fixed at build time, so `API_INTERNAL_URL` must be set when building.
+
+---
+
+## ADR-007: UUIDs for rows that appear in URLs, bigint identity for high-volume rows (M1)
+
+**Context.** The PRD fixes `jobs.id` as `bigserial` and leaves the other id types open. Ids appear in API paths (`/api/sites/{id}`) and in the database's hottest indexes.
+
+**Decision.** `users`, `sessions`, `sites` and `scans` use `uuid` (`gen_random_uuid()`, built into Postgres 13+). `check_runs`, `check_results`, `alerts`, `scan_targets` and `llm_usage` use `bigint GENERATED ALWAYS AS IDENTITY`. `jobs` keeps the PRD's `bigserial`.
+
+**Alternatives considered.**
+- UUIDs everywhere: uniform, but random UUIDs make large indexes on append-heavy tables bigger and scatter inserts across pages.
+- Integers everywhere: compact, but `/api/sites/42` invites guessing neighbouring ids. Every query is scoped by `user_id` anyway (the real IDOR defense), so this is defense in depth, not the defense.
+
+**Consequences.** Sites and users can't be enumerated from URLs. Run and result ids are guessable, but every query that reads them joins through `sites.user_id`, and the M6 IDOR tests check exactly that.

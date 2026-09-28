@@ -1,7 +1,7 @@
 # Common tasks. Everything runs in Docker, so the only host requirements are Docker and make.
 COMPOSE := docker compose
 
-.PHONY: help dev down test lint fmt
+.PHONY: help dev down migrate test lint fmt
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -14,6 +14,9 @@ dev: .env ## Start the stack: postgres, minio, mailpit, api, 2 workers, web
 
 down: ## Stop the stack (data volumes are kept)
 	$(COMPOSE) down
+
+migrate: .env ## Apply pending SQL migrations in db/migrations
+	$(COMPOSE) run --rm migrate
 
 test: .env ## Run the Python tests against the compose Postgres, MinIO and Mailpit
 	$(COMPOSE) up -d --wait postgres minio mailpit

@@ -19,7 +19,7 @@ An ad tracking and landing page monitor built as a portfolio project for PM and 
 - make lint: ruff, ruff format --check, mypy, eslint, tsc
 - make fmt: ruff format + ruff check --fix
 - make down: stop the stack
-- make migrate: added in M1
+- make migrate: apply pending db/migrations (also runs automatically as the `migrate` service in make dev)
 - make check URL=https://example.com: added in M3 (capture one URL, run all checks, print a report)
 - Host-side alternative: `cd server && uv sync && uv run pytest` (needs `make dev` or `docker compose up -d postgres minio mailpit` running)
 

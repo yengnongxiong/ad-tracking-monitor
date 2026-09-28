@@ -62,8 +62,16 @@ services:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"
 
+  # One-shot: applies db/migrations before the API and workers start (also `make migrate`).
+  migrate:
+    <<: *server
+    command: ["python", "-m", "tagmonitor.db.migrate"]
+
   api:
     <<: *server
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     command: ["uvicorn", "tagmonitor.api.app:app", "--host", "0.0.0.0", "--port", "8000",
               "--reload", "--reload-dir", "src"]
     ports:
@@ -77,6 +85,9 @@ services:
 
   worker:
     <<: *server
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     command: ["python", "-m", "tagmonitor.worker"]
     # Two containers pulling from the same Postgres queue prove horizontal scaling (PRD §12).
     deploy:
