@@ -237,3 +237,20 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** Serving the demo page over HTTPS with a self-signed certificate and teaching Chromium to trust it (fragile and a lot of machinery for a demo); loosening the SSRF guard for all private addresses in dev (then dev no longer exercises the real guard).
 
 **Consequences.** The demo is honest: the page really is served over plain HTTP, so Page health really does report "not HTTPS" and sends that alert too. Production is unaffected by construction: the allowlist is empty and stubs are off unless explicitly configured.
+
+---
+
+## ADR-016: The research scan reuses the monitoring pipeline, and publishes aggregates only (M8)
+
+**Context.** PRD §16 asks for a one-off scan of a few hundred small-business landing pages, compiled by hand into `data/scan/targets.csv`, to produce findings like "X% have a Meta Pixel that never fires". The scan loads other people's websites, so it has to be polite and safe, and the published numbers must never identify a business.
+
+**Decision.**
+- **Same pipeline.** `scan run` vets the list, checks robots.txt, then enqueues one `scan_url` job per registrable domain at priority 0 (lowest), so the regular workers do the page loads with the same `PageCapturer`, SSRF guard, per-domain lock and checks as monitoring. Monitoring jobs always go first. Nothing about the scan needs its own worker, browser setup or retry logic.
+- **robots.txt through the egress proxy.** The robots.txt fetch is also a request to a URL we were given, so it goes through a per-request `EgressProxy` (httpx with `proxy=`, `trust_env=False`), with the same DNS pinning and redirect checks as the browser. Rules follow RFC 9309: a 4xx means no rules, a 5xx means skip the site, and a network failure means the site is unreachable. The page load is scheduled at least 10 s after the robots.txt fetch (§12 politeness). Rules can target the `tag-monitor` token.
+- **All or nothing.** Every robots.txt check runs before anything is written; the scan row, its targets and their jobs are then inserted in one transaction, so a crash can't leave a half-planned scan.
+- **Clear denominators.** "Attempted" means robots.txt allowed us (or had no rules). Rows that aren't a domain name (typos, IP addresses) and duplicate domains are skipped as data-entry problems, not counted as unreachable businesses. Tag and layout shares use "loaded without an HTTP error" as the denominator; each row of the report states its own n.
+- **Aggregates only.** The target list is git-ignored. The report contains counts, shares and 95% Wilson intervals; categories with fewer than 5 loaded sites are left out. A test asserts the generated report contains no URLs or hostnames. Only the capture JSON is stored (for re-analysis), not screenshots of third-party sites.
+
+**Alternatives considered.** A standalone scanner script with its own browser loop (faster to write, but a second copy of the capture, SSRF and politeness logic that could drift from the one users rely on). Checking robots.txt inside each `scan_url` job (the plan and its skip counts would only be known after the whole scan ran, and the 10 s gap would have to be a sleep inside a job holding a worker slot). Normal-approximation intervals (they collapse to zero width at 0% and 100%, exactly the shares this report will have in small categories).
+
+**Consequences.** The scan and monitoring share one worker pool, so a large scan slows nothing down but itself. Re-analysis is cheap: `scan analyze` reads rows already in Postgres, and the stored capture JSON allows re-running checks if a pattern changes. Sites behind a consent banner are measured as a first-time visitor sees them (no clicks), which the limitations section says.

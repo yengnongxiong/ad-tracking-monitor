@@ -46,8 +46,23 @@ class FixtureServer:
     def url(self, site: str) -> str:
         return f"http://{FIXTURE_HOST}:{self.port}/{site}/"
 
+    ROBOTS_TXT = (
+        b"User-agent: *\nDisallow: /private-area/\n\n"
+        b"User-agent: tag-monitor\nDisallow: /private-area/\nDisallow: /no-tagmonitor/\n"
+    )
+
     def handle(self, request: BaseHTTPRequestHandler) -> None:
         path = request.path.split("?")[0]
+        host = request.headers.get("Host", "").split(":")[0]
+        if path == "/robots.txt":
+            # Scan tests use hostnames to pick a robots.txt behavior.
+            if host.startswith("no-robots."):
+                self._send(request, 404, b"not found", "text/plain")
+            elif host.startswith("robots-500."):
+                self._send(request, 500, b"oops", "text/plain")
+            else:
+                self._send(request, 200, self.ROBOTS_TXT, "text/plain")
+            return
         redirects = {
             "/redirect_chain_3/": "/redirect_chain_3/hop1",
             "/redirect_chain_3/hop1": "/redirect_chain_3/hop2",

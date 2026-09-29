@@ -22,6 +22,7 @@ An ad tracking and landing page monitor built as a portfolio project for PM and 
 - make migrate: apply pending db/migrations (also runs automatically as the `migrate` service in make dev)
 - make check URL=https://example.com: capture one URL on mobile and desktop, run all checks, print a report
 - python -m tagmonitor.verify_patterns URL...: re-verify tracking endpoint patterns on live sites
+- make scan NAME=... / make findings NAME=...: research scan of data/scan/targets.csv and its report
 - python -m tagmonitor.checks.explanations > docs/check-explanations.md: regenerate the explanations doc
 - python -m tests.save_fixture_captures (in the tests container): regenerate saved fixture captures
 - Host-side alternative: `cd server && uv sync && uv run pytest` (needs `make dev` or `docker compose up -d postgres minio mailpit` running)

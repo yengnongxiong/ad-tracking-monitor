@@ -11,6 +11,7 @@ from tagmonitor.alerts.senders import make_email_sender
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import get_settings
 from tagmonitor.db.pool import create_pool
+from tagmonitor.scan.job import record_failed_scan_target, run_scan_job
 from tagmonitor.storage import ObjectStorage
 from tagmonitor.worker.capture_job import record_failed_capture, run_capture_job
 from tagmonitor.worker.context import DeadHandler, Handler, WorkerContext
@@ -19,8 +20,12 @@ from tagmonitor.worker.runner import Worker
 HANDLERS: dict[str, Handler] = {
     "capture_and_check": run_capture_job,
     "send_alert": run_send_alert,
+    "scan_url": run_scan_job,
 }
-DEAD_HANDLERS: dict[str, DeadHandler] = {"capture_and_check": record_failed_capture}
+DEAD_HANDLERS: dict[str, DeadHandler] = {
+    "capture_and_check": record_failed_capture,
+    "scan_url": record_failed_scan_target,
+}
 
 
 async def main() -> None:

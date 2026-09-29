@@ -11,3 +11,6 @@ __pycache__/
 
 # Demo toggles (make demo-break-pixel)
 demo/state/
+
+# The research target list names real businesses: keep it off the public repo.
+data/scan/targets.csv

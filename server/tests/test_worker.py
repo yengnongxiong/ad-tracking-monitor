@@ -277,7 +277,9 @@ async def test_scheduled_job_for_a_paused_site_is_skipped(
 
 async def test_unknown_job_types_go_dead(db: Pool, storage: ObjectStorage) -> None:
     async with db.connection() as conn:
-        job_id = await enqueue(conn, "scan_url", {}, priority=0)
+        job_id = await enqueue(conn, "retention", {}, priority=0)
     assert job_id is not None
-    await run_until([make_worker(db, None, storage)], status_is(db, job_id, "dead"))
+    # No handlers at all, so the test keeps working as real job types get handlers.
+    worker = make_worker(db, None, storage, handlers={})
+    await run_until([worker], status_is(db, job_id, "dead"))
     assert str((await job_status(db, job_id))["last_error"]).startswith("unknown_job_type")
