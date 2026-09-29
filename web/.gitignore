@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Written by `next dev` for AI coding assistants; not part of the project.
+/AGENTS.md
+/CLAUDE.md

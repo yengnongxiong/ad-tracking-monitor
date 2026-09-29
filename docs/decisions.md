@@ -53,7 +53,7 @@ Each entry follows Context / Decision / Alternatives considered / Consequences. 
 **Decision.** Every capture starts a tiny asyncio HTTP proxy on `127.0.0.1` (`browser/egress_proxy.py`), and the browser context is configured to send **all** traffic through it. Playwright also forces loopback traffic through a configured proxy, which is exactly what we want. For each connection (`CONNECT host:port` for HTTPS, absolute-form `GET http://…` for plain HTTP), the proxy:
 1. parses the host the way a browser would, including the decimal, hex and octal IPv4 forms such as `http://2130706433/`;
 2. resolves it and refuses the connection if **any** address is non-public (private, loopback, link-local, CGNAT, multicast, reserved, unspecified, IPv6 ULA and link-local, or IPv4 embedded in IPv6 via mapping, NAT64, 6to4 or Teredo);
-3. connects to the **same IP it checked**.
+3. connects only to the **addresses it checked**, trying each in turn (a host that lists an unreachable IPv6 address first must not look down).
 
 The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to reject bad URLs when a site is added. A Chromium flag forces WebRTC traffic through the proxy too (otherwise WebRTC can open UDP connections that skip it), and service workers are blocked. `context.route` is still used for the tracking stubs, which answer before any network access.
 
@@ -64,7 +64,7 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 
 **Consequences.**
 - One enforcement point that covers navigations, every redirect hop, subresources, iframes, WebSockets and CORS preflights, and that is unit-testable over raw sockets (`tests/test_egress_proxy.py`).
-- Because the proxy connects to the address it validated, a DNS answer can't change between the check and the connection (DNS rebinding) for browser traffic. **What's left:** the API's check when a site is added and the later capture are separate lookups, which is harmless because the capture checks again. Anything outside the browser that fetches user URLs (robots.txt in M8) must use the same `resolve_public` check and connect to the address it validated. As defense in depth, **run workers on a network segment with no route to internal services** (a separate subnet or VPC with egress only to the internet, no access to the metadata endpoint).
+- Because the proxy connects only to addresses it validated, a DNS answer can't change between the check and the connection (DNS rebinding) for browser traffic. **What's left:** the API's check when a site is added and the later capture are separate lookups, which is harmless because the capture checks again. Anything outside the browser that fetches user URLs (robots.txt in M8) must use the same `resolve_public` check and connect to the address it validated. As defense in depth, **run workers on a network segment with no route to internal services** (a separate subnet or VPC with egress only to the internet, no access to the metadata endpoint).
 - Plain-HTTP requests are forwarded with `Connection: close`, so each proxy connection carries exactly one request. That costs extra TCP handshakes on `http://` pages, which are rare and mostly redirect to HTTPS.
 - A redirect to a private address becomes a navigation with `error_code = "ssrf_blocked"`. The worker (M4) treats it as a permanent failure, as §12 requires.
 - The proxy is about 200 lines of protocol code we own. It's tested for allowed and blocked plain HTTP, CONNECT tunnels, obfuscated IP literals, DNS and connection failures, and per-capture DNS caching.
@@ -297,3 +297,21 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 - Object-store lifecycle rules for captures. Simpler, but they can't know which captures are a site's latest, and they drift from the database.
 
 **Consequences.** The run history grid and the LCP chart show at most `RETENTION_DAYS` of history. The "last worked" line in alert emails can only look back that far too.
+
+---
+
+## ADR-019: The dashboard shows the latest check; a new page or a new ad starts its alert history over (M10)
+
+**Context.** Two bugs found while verifying the finished app (2026-09-28). First, the `site_latest_status` view took each check's newest result from *any* job. A check that stops running never gets a newer result, so after an owner deleted their ad copy, the last message match verdict (possibly "poor match") stayed on the dashboard indefinitely. Second, editing a site's URL kept the old page's alert states. The new page's first check could then email "Resolved" (or "Still broken") about a page that is no longer monitored, and nothing ran until the next scheduled check, up to a day later.
+
+**Decision.**
+- **One job, one picture.** The view (migration 0005) takes every result from the site's latest job, the job of its most recent *completed* run, and nothing older. A dead job leaves only an error run, so the last real results keep showing. The worst-device rule is unchanged, and a tie now goes to the device captured first (mobile), the same rule the alerting code uses, so the dashboard and the email name the same device.
+- **A different page starts fresh.** When a `PATCH` changes the normalized URL, the site's alert states are deleted and a check is queued at once, as for a new site.
+- **A different ad resets only message match.** Changing the ad copy deletes the `message_match` state and nothing else. Saving the edit form unchanged (it always sends every field) changes nothing, because values are compared with what's stored, under a row lock.
+
+**Alternatives considered.**
+- Filtering stale checks in the API (for example, hide message match when there's no ad copy). That fixes one symptom, and every future check whose inputs can disappear would need its own rule.
+- Keeping alert history across URL changes. The history describes a different page, so continuing it produces emails about the wrong page.
+
+**Consequences.** The dashboard can never show a result older than the latest check. A site whose URL changes loses its "last worked" history in future emails, which is correct for a different page. The view gained a join to find the latest job; `EXPLAIN` shows both halves use `check_runs_site_history_idx` for a single site.
+

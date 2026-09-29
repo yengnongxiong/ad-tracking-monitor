@@ -31,7 +31,7 @@ class MobileRenderCheck(Check):
                 **details,
             )
         # Compared with the device width, not innerWidth: mobile Chrome widens innerWidth to
-        # fit overflowing content (docs/milestones/M2.md).
+        # fit overflowing content (see "departs from the PRD" in docs/build-log.md).
         if dom.scroll_width > dom.viewport_width + OVERFLOW_TOLERANCE_PX:
             return self.result(
                 "warn",

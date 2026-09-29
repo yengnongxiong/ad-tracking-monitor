@@ -1,7 +1,7 @@
 """The one place that talks to the Anthropic API.
 
 Everything above this layer builds plain request dicts and reads plain response dicts, so
-tests swap in a fake transport and never touch the network (CLAUDE.md).
+tests swap in a fake transport and never touch the network.
 """
 
 from typing import Any, Protocol

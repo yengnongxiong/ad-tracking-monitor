@@ -1,5 +1,5 @@
 """`label`: the interactive labeling session. You read the ad and the page and give the overall
-1-5 score; this only records your answers (CLAUDE.md: labels are the human's, never ours).
+1-5 score; this only records your answers. Labels always come from a person (PRD §15).
 
 - Blind: the model's scores are never shown, so they can't anchor you.
 - Resumable: every answer is appended and flushed at once; the next session starts where you

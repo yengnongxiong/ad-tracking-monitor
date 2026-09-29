@@ -2,7 +2,7 @@
 the dataset files, split, label, collect, run and the report.
 
 Every dataset here is written to tmp_path by the test itself: tests never read or write the
-real evals/message_match/dataset/, whose labels are the human's (CLAUDE.md).
+real evals/message_match/dataset/, whose labels come from a person (PRD §15).
 """
 
 import json

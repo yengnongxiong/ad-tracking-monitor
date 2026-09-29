@@ -1,4 +1,4 @@
-"""A scripted stand-in for the Anthropic API: tests never call the real one (CLAUDE.md)."""
+"""A scripted stand-in for the Anthropic API: tests never call the real one."""
 
 import asyncio
 from collections.abc import Callable

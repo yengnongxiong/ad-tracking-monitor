@@ -14,3 +14,7 @@ demo/state/
 
 # The research target list names real businesses: keep it off the public repo.
 data/scan/targets.csv
+
+# Local working notes and AI-assistant instructions (kept on your machine, not published).
+CLAUDE.md
+notes/
