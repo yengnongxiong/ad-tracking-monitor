@@ -152,3 +152,58 @@ async def test_latest_status_ignores_older_jobs(db: Pool) -> None:
     await insert_result(db, new_run, "google_ga4", "pass")
 
     assert await latest_status(db) == {"google_ga4": "pass"}
+
+
+async def test_latest_status_drops_checks_the_newest_job_did_not_run(db: Pool) -> None:
+    """Regression: after the owner deleted their ad copy, the last message match verdict stayed
+    on the dashboard forever, because the view took each check's newest result from any job."""
+    site = await insert_site(db, await insert_user(db))
+    old_run = await insert_run(db, site_id=site, job_id=await insert_job(db, status="succeeded"))
+    await insert_result(db, old_run, "message_match", "fail")
+    await insert_result(db, old_run, "meta_pixel", "pass")
+    new_run = await insert_run(db, site_id=site, job_id=await insert_job(db, status="succeeded"))
+    await insert_result(db, new_run, "meta_pixel", "pass")
+
+    assert await latest_status(db) == {"meta_pixel": "pass"}
+
+
+async def test_latest_status_ties_go_to_the_first_device(db: Pool) -> None:
+    """Both devices failed: show mobile (captured first), the device the alert email names."""
+    site = await insert_site(db, await insert_user(db))
+    job = await insert_job(db, status="succeeded")
+    mobile = await insert_run(db, site_id=site, job_id=job, device="mobile")
+    desktop = await insert_run(db, site_id=site, job_id=job, device="desktop")
+    await insert_result(db, desktop, "meta_pixel", "fail")
+    await insert_result(db, mobile, "meta_pixel", "fail")
+    async with db.connection() as conn:
+        row = await (await conn.execute("SELECT device FROM site_latest_status")).fetchone()
+    assert row is not None
+    assert row["device"] == "mobile"
+
+
+async def test_latest_status_skips_a_newer_job_that_died(db: Pool) -> None:
+    """A dead job leaves an error run with no results; the last real results still show."""
+    site = await insert_site(db, await insert_user(db))
+    run = await insert_run(db, site_id=site, job_id=await insert_job(db, status="succeeded"))
+    await insert_result(db, run, "meta_pixel", "pass")
+    await insert_run(
+        db,
+        site_id=site,
+        job_id=await insert_job(db, status="dead"),
+        status="error",
+        error_code="capture_timeout",
+    )
+
+    assert await latest_status(db) == {"meta_pixel": "pass"}
+
+
+async def test_latest_status_after_retention_nulled_the_job(db: Pool) -> None:
+    """Retention deletes old jobs (check_runs.job_id is then NULL) but keeps each site's
+    latest run per device, which must still show."""
+    site = await insert_site(db, await insert_user(db))
+    mobile = await insert_run(db, site_id=site, device="mobile")
+    desktop = await insert_run(db, site_id=site, device="desktop")
+    await insert_result(db, mobile, "meta_pixel", "pass")
+    await insert_result(db, desktop, "meta_pixel", "fail")
+
+    assert await latest_status(db) == {"meta_pixel": "fail"}
