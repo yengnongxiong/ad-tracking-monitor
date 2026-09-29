@@ -10,8 +10,9 @@ import type { User } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 
 const NAV = [
-  { href: "/dashboard", label: "Sites" },
-  { href: "/alerts", label: "Alerts" },
+  { href: "/dashboard", label: "Sites", adminOnly: false },
+  { href: "/alerts", label: "Alerts", adminOnly: false },
+  { href: "/ops", label: "Ops", adminOnly: true },
 ];
 
 /** Everything behind login: checks the session once, then renders the nav and the page. */
@@ -44,7 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/dashboard" className="font-semibold tracking-tight">
             tag-monitor
           </Link>
-          {NAV.map((item) => (
+          {NAV.filter((item) => user.is_admin || !item.adminOnly).map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -1,5 +1,6 @@
 """The research scan (PRD §16): targets, robots.txt, the scan job, and aggregate findings."""
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -232,7 +233,7 @@ async def test_scan_end_to_end(
         await run_until([worker], scan_done)
 
     async with db.connection() as conn:
-        findings = await write_findings(conn, "test-scan", tmp_path)
+        findings = await write_findings(conn, "test-scan", tmp_path, tmp_path / "web")
 
     assert (findings.listed, findings.attempted, findings.reachable, findings.loaded) == (
         7,
@@ -247,6 +248,9 @@ async def test_scan_end_to_end(
     assert shares["…of those, Meta firing PageView"] == (1, 2)
     assert len(findings.lcp_seconds) == 3
 
+    landing = json.loads((tmp_path / "web" / "findings.json").read_text())
+    assert landing == json.loads((tmp_path / "findings" / "summary.json").read_text())
+    assert landing["loaded"] == 3 and "://" not in json.dumps(landing)
     report = (tmp_path / "findings.md").read_text()
     assert "Sites reachable (of attempted) | 80% (4/5)" in report
     assert "## Methodology" in report and "## Limitations" in report

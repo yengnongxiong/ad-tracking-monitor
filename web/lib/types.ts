@@ -160,3 +160,19 @@ export interface SiteInput {
   ad_primary_text: string | null;
   ad_cta: string | null;
 }
+
+// GET /api/ops/queue (admins only)
+export interface OpsQueue {
+  depth: { type: string; status: "queued" | "running"; count: number }[];
+  oldest_queued_age_s: number | null;
+  last_24h: {
+    succeeded: number;
+    dead: number;
+    success_rate: number | null;
+    p50_s: number | null;
+    p95_s: number | null;
+  };
+  dead_jobs: { id: number; type: string; last_error: string | null; finished_at: string | null }[];
+  llm_today: { calls: number; limit: number; input_tokens: number; output_tokens: number };
+  retention: { days: number; last_run_at: string | null };
+}

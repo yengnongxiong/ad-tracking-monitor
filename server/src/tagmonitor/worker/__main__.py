@@ -12,6 +12,7 @@ from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import get_settings
 from tagmonitor.db.pool import create_pool
 from tagmonitor.llm.transport import AnthropicTransport
+from tagmonitor.retention import run_retention
 from tagmonitor.scan.job import record_failed_scan_target, run_scan_job
 from tagmonitor.storage import ObjectStorage
 from tagmonitor.worker.capture_job import record_failed_capture, run_capture_job
@@ -22,6 +23,7 @@ HANDLERS: dict[str, Handler] = {
     "capture_and_check": run_capture_job,
     "send_alert": run_send_alert,
     "scan_url": run_scan_job,
+    "retention": run_retention,
 }
 DEAD_HANDLERS: dict[str, DeadHandler] = {
     "capture_and_check": record_failed_capture,

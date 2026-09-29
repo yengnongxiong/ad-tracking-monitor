@@ -14,7 +14,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from tagmonitor.queue.jobs import Job, LostLease, claim, fail, heartbeat, reap, release
-from tagmonitor.scheduler import schedule_due_sites
+from tagmonitor.scheduler import schedule_due_sites, schedule_retention
 from tagmonitor.worker.context import DeadHandler, DomainBusy, Handler, JobError, WorkerContext
 
 log = logging.getLogger(__name__)
@@ -181,6 +181,8 @@ class Worker:
     async def _schedule(self) -> None:
         async with self.ctx.pool.connection() as conn:
             enqueued = await schedule_due_sites(conn)
+            if await schedule_retention(conn):
+                log.info("scheduler enqueued the daily retention job")
         if enqueued:
             log.info("scheduler enqueued %d capture job(s)", enqueued)
 

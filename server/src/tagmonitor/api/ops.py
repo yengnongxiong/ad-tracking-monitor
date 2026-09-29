@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from tagmonitor.api.deps import AdminDep, PoolDep
+from tagmonitor.api.deps import AdminDep, PoolDep, SettingsDep
 
 router = APIRouter(prefix="/api/ops", tags=["ops"])
 
@@ -18,15 +18,29 @@ class DeadJob(BaseModel):
     finished_at: datetime | None
 
 
+class LlmToday(BaseModel):
+    calls: int
+    limit: int
+    input_tokens: int
+    output_tokens: int
+
+
+class Retention(BaseModel):
+    days: int
+    last_run_at: datetime | None
+
+
 class QueueStats(BaseModel):
     depth: list[dict[str, Any]]  # [{type, status, count}] for active jobs
     oldest_queued_age_s: float | None  # how late the most overdue due job is
     last_24h: dict[str, Any]  # succeeded, dead, success_rate, p50_s, p95_s
     dead_jobs: list[DeadJob]
+    llm_today: LlmToday  # against LLM_MAX_CALLS_PER_DAY, UTC day
+    retention: Retention
 
 
 @router.get("/queue")
-async def queue_stats(_: AdminDep, pool: PoolDep) -> QueueStats:
+async def queue_stats(_: AdminDep, pool: PoolDep, settings: SettingsDep) -> QueueStats:
     async with pool.connection() as conn:
         depth = await (
             await conn.execute(
@@ -63,6 +77,19 @@ async def queue_stats(_: AdminDep, pool: PoolDep) -> QueueStats:
                 "ORDER BY finished_at DESC NULLS LAST LIMIT 20"
             )
         ).fetchall()
+        llm = await (
+            await conn.execute(
+                "SELECT count(*) AS calls, coalesce(sum(input_tokens), 0) AS input_tokens, "
+                "coalesce(sum(output_tokens), 0) AS output_tokens FROM llm_usage "
+                "WHERE created_at >= date_trunc('day', now(), 'UTC')"
+            )
+        ).fetchone()
+        retention = await (
+            await conn.execute(  # jobs_retention_idx
+                "SELECT max(finished_at) AS last_run_at FROM jobs "
+                "WHERE type = 'retention' AND status = 'succeeded'"
+            )
+        ).fetchone()
 
     assert window is not None
     finished = window["succeeded"] + window["dead"]
@@ -77,4 +104,9 @@ async def queue_stats(_: AdminDep, pool: PoolDep) -> QueueStats:
             "p95_s": window["p95_s"],
         },
         dead_jobs=[DeadJob(**row) for row in dead],
+        llm_today=LlmToday(limit=settings.llm_max_calls_per_day, **(llm or {})),
+        retention=Retention(
+            days=settings.retention_days,
+            last_run_at=retention["last_run_at"] if retention else None,
+        ),
     )

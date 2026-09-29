@@ -5,6 +5,7 @@ business names, and categories with fewer than MIN_CELL loaded sites are left ou
 small category can't point at a particular business.
 """
 
+import json
 import math
 from dataclasses import dataclass
 from datetime import datetime
@@ -331,15 +332,53 @@ def render_markdown(scan: dict[str, Any], findings: Findings, charts_dir: str) -
     return "\n".join(lines)
 
 
-async def write_findings(conn: Conn, name: str, docs_dir: Path) -> Findings:
+def summary(scan: dict[str, Any], findings: Findings) -> dict[str, Any]:
+    """The headline numbers as data, for the landing page: the same aggregates as findings.md,
+    nothing per site."""
+    lcp = findings.lcp_seconds
+    return {
+        "scan": scan["name"],
+        "date": f"{scan['created_at']:%Y-%m-%d}",
+        "attempted": findings.attempted,
+        "loaded": findings.loaded,
+        "median_lcp_s": float(pd.Series(lcp).median()) if lcp else None,
+        "proportions": [
+            {
+                "label": p.label,
+                "successes": p.successes,
+                "n": p.n,
+                "share": p.share if p.n else None,
+                "ci": list(p.interval) if p.n else None,
+            }
+            for p in findings.proportions
+        ],
+    }
+
+
+async def write_findings(
+    conn: Conn, name: str, docs_dir: Path, web_dir: Path | None = None
+) -> Findings:
+    """docs/findings.md, its charts and summary.json; with web_dir, also the landing page's
+    copy of the summary (web/public/findings.json)."""
     scan, frame = await load_scan(conn, name)
     if frame.empty:
         raise ValueError(f"scan {name!r} has no targets")
     findings = compute_findings(frame)
+    write_outputs(scan, findings, docs_dir, web_dir)
+    return findings
+
+
+def write_outputs(
+    scan: dict[str, Any], findings: Findings, docs_dir: Path, web_dir: Path | None
+) -> None:
     charts = docs_dir / "findings"
     charts.mkdir(parents=True, exist_ok=True)
     plot_rates(findings.proportions, charts / "rates.png")
     if findings.lcp_seconds:
         plot_lcp_histogram(findings.lcp_seconds, charts / "lcp_histogram.png")
     (docs_dir / "findings.md").write_text(render_markdown(scan, findings, "findings"))
-    return findings
+    data = json.dumps(summary(scan, findings), indent=2) + "\n"
+    (charts / "summary.json").write_text(data)
+    if web_dir is not None:
+        web_dir.mkdir(parents=True, exist_ok=True)
+        (web_dir / "findings.json").write_text(data)

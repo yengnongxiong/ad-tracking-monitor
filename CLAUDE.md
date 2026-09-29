@@ -24,6 +24,7 @@ An ad tracking and landing page monitor built as a portfolio project for PM and 
 - python -m tagmonitor.verify_patterns URL...: re-verify tracking endpoint patterns on live sites
 - make scan NAME=... / make findings NAME=...: research scan of data/scan/targets.csv and its report
 - make eval-status / eval-collect / eval-label / eval-split / eval-run PROMPT=v1 SPLIT=dev / eval-report: message-match evals (evals/message_match/README.md)
+- make bench: queue throughput benchmark (500 fixture checks, 1/2/4/8 worker processes) -> docs/performance.md
 - python -m tagmonitor.checks.explanations > docs/check-explanations.md: regenerate the explanations doc
 - python -m tests.save_fixture_captures (in the tests container): regenerate saved fixture captures
 - Host-side alternative: `cd server && uv sync && uv run pytest` (needs `make dev` or `docker compose up -d postgres minio mailpit` running)

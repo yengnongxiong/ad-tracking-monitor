@@ -45,10 +45,11 @@ scan: .env ## Research scan of data/scan/targets.csv (needs `make dev` running):
 	$(COMPOSE) run --rm --no-deps -v ./data:/app/data api \
 		python -m tagmonitor.scan run --targets /app/data/scan/targets.csv --name "$(NAME)" --wait
 
-findings: .env ## Write docs/findings.md from a finished scan: make findings NAME=fall-2026
+findings: .env ## Write docs/findings.md (+ the landing page's numbers) from a scan: make findings NAME=fall-2026
 	@test -n "$(NAME)" || (echo "usage: make findings NAME=fall-2026" && exit 1)
-	$(COMPOSE) run --rm --no-deps -v ./docs:/app/docs api \
-		python -m tagmonitor.scan analyze --name "$(NAME)" --docs-dir /app/docs
+	$(COMPOSE) run --rm --no-deps -v ./docs:/app/docs -v ./web/public:/app/web-public api \
+		python -m tagmonitor.scan analyze --name "$(NAME)" --docs-dir /app/docs \
+		--web-dir /app/web-public
 
 # Message-match evals (evals/message_match/README.md). They run in the api container, so
 # `make dev` must be running (eval-run needs Postgres for the cache and the daily budget).

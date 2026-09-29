@@ -67,15 +67,18 @@ def run(
 def analyze(
     name: Annotated[str, typer.Option(help="The scan to analyze")],
     docs_dir: Annotated[Path, typer.Option(help="Where findings.md goes")] = Path("../docs"),
+    web_dir: Annotated[
+        Path | None, typer.Option(help="Where the landing page's findings.json goes")
+    ] = Path("../web/public"),
 ) -> None:
-    """Write docs/findings.md and docs/findings/*.png from a finished scan."""
+    """Write docs/findings.md, docs/findings/*.png and the landing page's findings.json."""
     settings = get_settings()
 
     async def go() -> None:
         async with await AsyncConnection.connect(
             settings.database_url, autocommit=True, row_factory=dict_row
         ) as conn:
-            findings = await write_findings(conn, name, docs_dir)
+            findings = await write_findings(conn, name, docs_dir, web_dir)
         console.print(f"wrote {docs_dir / 'findings.md'} ({findings.loaded} sites loaded)")
 
     asyncio.run(go())

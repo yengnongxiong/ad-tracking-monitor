@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FindingsHighlights } from "@/components/FindingsHighlights";
 import { button } from "@/components/ui";
 
 const CHECKS = [
@@ -69,10 +70,7 @@ export default function Home() {
           not one per tag. Every email says what we saw, why it matters and what to do.
         </p>
         <h2 className="mt-12 text-2xl font-semibold tracking-tight">What we&apos;re finding</h2>
-        <p className="mt-4 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          We&apos;re scanning public small-business websites to measure how often tracking is
-          broken in the wild. Findings will be published here once the scan is done.
-        </p>
+        <FindingsHighlights />
       </section>
     </main>
   );

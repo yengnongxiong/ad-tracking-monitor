@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False
     check_now_cooldown_seconds: int = 300
 
+    # Retention (PRD §11): monitoring history older than this is deleted by a daily job.
+    retention_days: int = 90
+
     # LLM message match (PRD §15). Without an API key the check reports that it's turned off.
     anthropic_api_key: str | None = None
     llm_model: str = "claude-haiku-4-5-20251001"

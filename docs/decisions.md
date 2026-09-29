@@ -277,3 +277,23 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 - Counting the budget by summing `llm_usage` without a lock. Two workers could both read "499" and both call.
 
 **Consequences.** The prompt text lives in `evals/message_match/prompts/`, outside the Python package, so the Docker image copies it in and compose mounts it. The check only sees text, not images, and the prompt tells the model so. The first real API call happens when you add your key: the request format is verified against the SDK with a mock HTTP server, not against the live API.
+
+---
+
+## ADR-018: Retention keeps each site's latest state and deletes rows before objects (M10)
+
+**Context.** Every check stores two runs, about eight results, two capture JSONs and two screenshots. PRD §11 asks for a retention job that deletes runs, results and captures older than 90 days (configurable), in batches.
+
+**Decision.**
+- **Daily, via the scheduler.** Every scheduler tick checks whether a `retention` job ran in the last day (a tiny partial index makes the check cheap) and enqueues one if not; the `retention` dedupe key keeps it to one.
+- **Batches of 500 runs,** each its own statement, so a large backlog never holds a long transaction or locks the table. 500 runs means at most 1,000 objects, which is S3's `DeleteObjects` limit.
+- **Always keep each site's latest run per device.** The dashboard shows the latest results, so a site paused for four months still shows its last known state instead of going blank.
+- **Rows first, then objects.** If an object delete fails, the result is an orphaned file, not a run pointing at a missing screenshot.
+- **Also pruned:** old finished jobs, expired sessions, login attempts older than a day, and model answers cached before the cutoff.
+- **Kept:** alerts (the user's record of what happened), LLM usage (cost history), and research-scan runs (deleting a scan removes them).
+
+**Alternatives considered.**
+- Postgres table partitioning by month, dropping old partitions. It's the right tool at much larger volumes. Here it would complicate foreign keys and the latest-run rule, for tables this size.
+- Object-store lifecycle rules for captures. Simpler, but they can't know which captures are a site's latest, and they drift from the database.
+
+**Consequences.** The run history grid and the LCP chart show at most `RETENTION_DAYS` of history. The "last worked" line in alert emails can only look back that far too.

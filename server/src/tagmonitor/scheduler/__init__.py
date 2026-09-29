@@ -6,13 +6,16 @@ due-sites query uses SKIP LOCKED and the insert is deduplicated), so the lock ju
 wasted effort.
 """
 
-from tagmonitor.queue.jobs import PRIORITY_SCHEDULED, Conn
+from datetime import timedelta
+
+from tagmonitor.queue.jobs import PRIORITY_RETENTION, PRIORITY_SCHEDULED, Conn, enqueue
 
 # Arbitrary constant naming "the scheduler lock" among advisory locks. Two-int keys live in a
 # different lock space from the one-bigint keys used for per-domain politeness.
 SCHEDULER_LOCK = (7311, 1)
 BATCH_SIZE = 100
 INTERVAL_JITTER = 0.05
+RETENTION_EVERY = timedelta(days=1)
 
 
 async def schedule_due_sites(conn: Conn) -> int:
@@ -68,3 +71,20 @@ async def schedule_due_sites(conn: Conn) -> int:
             {"jitter": INTERVAL_JITTER, "ids": site_ids},
         )
         return enqueued
+
+
+async def schedule_retention(conn: Conn) -> bool:
+    """Enqueue today's retention job unless one is active or finished in the last day.
+    Called on every scheduler tick; jobs_retention_idx keeps the check cheap."""
+    cursor = await conn.execute(
+        "SELECT EXISTS (SELECT 1 FROM jobs WHERE type = 'retention' "
+        "AND (status IN ('queued', 'running') OR finished_at > now() - %s)) AS recent",
+        (RETENTION_EVERY,),
+    )
+    row = await cursor.fetchone()
+    if row is None or row["recent"]:
+        return False
+    job_id = await enqueue(
+        conn, "retention", {}, priority=PRIORITY_RETENTION, dedupe_key="retention"
+    )
+    return job_id is not None
