@@ -103,7 +103,7 @@ All in [docs/decisions.md](docs/decisions.md), each with context, the decision, 
 - **Lab, not field, speed.** LCP comes from one emulated page load per check, not from real visitors' phones.
 - **Message match reads text only.** Images and video aren't judged, and the verdict is a model's opinion, measured against human labels in the evals.
 - **One region, one user agent.** Geo-targeted pages, and bot defenses that single out headless browsers, can show something different.
-- **Not deployed yet.** Everything runs locally with Docker Compose. Hosting is still to be chosen.
+- **Runs locally, not hosted.** Everything runs on your machine with Docker Compose; there's no public instance to sign up for ([ADR-020](docs/decisions.md#adr-020-run-locally-no-hosted-deployment-m10)).
 
 ## Quickstart
 

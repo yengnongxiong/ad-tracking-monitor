@@ -11,7 +11,7 @@ tag-monitor was built in milestones M0 to M10 from [PRD.md](PRD.md). This log re
 | Queue benchmark | Tooling done. `make bench` writes [performance.md](performance.md). |
 | Research scan | Tooling done and smoke-tested. The real run needs the hand-compiled `data/scan/targets.csv`. |
 | Message match evals | Tooling done and tested. The results need human labels and an API key ([evals README](../evals/message_match/README.md)). |
-| Deployment | Not started. Hosting is still to be chosen. |
+| Deployment | Not hosted, by decision: it runs locally with `make dev` ([ADR-020](decisions.md#adr-020-run-locally-no-hosted-deployment-m10)). |
 
 ## Where the build departs from the PRD
 

@@ -315,3 +315,16 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 
 **Consequences.** The dashboard can never show a result older than the latest check. A site whose URL changes loses its "last worked" history in future emails, which is correct for a different page. The view gained a join to find the latest job; `EXPLAIN` shows both halves use `check_runs_site_history_idx` for a single site.
 
+
+## ADR-020: Run locally; no hosted deployment (M10)
+
+**Context.** The PRD's last milestone includes a deployment, with the provider left open. Running tag-monitor for real means keeping several things up around the clock: Postgres, object storage, an email provider, the Next.js server, and at least one worker holding a headless Chromium open so scheduled checks run on time. The budget for the project is zero. At zero cost, the realistic options were a free cloud VM big enough to run the Compose stack, which needs an account with identity verification and can be reclaimed by the provider if it looks idle, or spreading the services across several free tiers, where container hosts typically suspend idle services. A worker that sleeps misses its schedule, and a monitor that silently stops checking is the very failure it exists to catch.
+
+**Decision.** tag-monitor is not hosted. It runs locally with one command (`make dev`), and the README shows the whole flow through a recording of the local demo. No production deployment files are in the repo: without a host they couldn't be tested, and untested deploy config would be dead code.
+
+**Alternatives considered.**
+- A free cloud VM running a production variant of the Compose stack behind an HTTPS reverse proxy. Closest to the current architecture, but it depends on a provider's free-tier terms staying put, and it adds a server to patch and watch.
+- Splitting the services across free tiers (a static/Next.js host, managed Postgres, S3-compatible storage, a container host for the API and worker). More moving parts, and the always-on worker is exactly what free container tiers don't offer.
+- A small paid server. Reliable, but not free.
+
+**Consequences.** Anyone evaluating the project runs it locally; the requirements are Docker and `make`. A future deployment is a configuration job, not a code change, because every production difference is already a setting: the `runtime` image target (no dev tools), `next build` and `next start` instead of `next dev`, HTTPS with `SESSION_COOKIE_SECURE=true`, a real email backend (`EMAIL_BACKEND=resend` or SMTP), a real bucket and `S3_SECRET_KEY`, `SSRF_ALLOW_HOSTS` empty and `TRACKING_STUBS` off, and workers on a network with no access to internal services (ADR-004).
