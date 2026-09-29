@@ -2,7 +2,7 @@
 COMPOSE := docker compose
 
 .PHONY: help dev down migrate test lint fmt check demo-break-pixel demo-fix-pixel scan findings \
-	eval-status eval-collect eval-label eval-split eval-run eval-report
+	eval-status eval-collect eval-label eval-split eval-run eval-report bench
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -72,3 +72,7 @@ eval-run: .env ## Evals: score a split: make eval-run PROMPT=v1 SPLIT=dev
 
 eval-report: .env ## Evals: regenerate evals/message_match/results/report.md
 	$(EVALS) report
+
+bench: .env ## Queue throughput benchmark: 500 fixture checks with 1, 2, 4, 8 workers -> docs/performance.md
+	$(COMPOSE) run --rm -e BENCH_COMMIT=$$(git rev-parse --short HEAD) -v ./docs:/app/docs-out \
+		tests python -m benchmarks.queue_throughput --out /app/docs-out
