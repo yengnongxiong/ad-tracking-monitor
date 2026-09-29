@@ -135,7 +135,7 @@ Message match needs `ANTHROPIC_API_KEY` in `.env`. Without it, the check reports
 
 The dev stack includes a demo landing page, "Bean There Coffee", with a Meta Pixel and GA4. Its tags are answered by local stubs, so nothing is sent to Meta or Google.
 
-1. Open http://localhost:3001, sign up, and add `http://beanthere.demo/` as a page.
+1. Open http://localhost:3001, sign up, and add `http://beanthere.demo/` as a page. The demo page is served over plain HTTP, so Page health also flags it and sends a "not secure" alert: that's the check working, not a glitch ([ADR-015](docs/decisions.md#adr-015-a-local-demo-harness-that-cant-weaken-production-m7)).
 2. Run `make demo-break-pixel`, then click **Check now**. After the confirmation re-check (60 s in dev), an alert lands in Mailpit (http://localhost:8025).
 3. Run `make demo-fix-pixel`, then click **Check now** again for the recovery email.
 

@@ -108,6 +108,8 @@ The PRD was reviewed before any code was written. These are the places where fol
 
 **Benchmark, 2026-09-29.** `make bench` on an Apple M4 Mac, with Docker limited to 4 CPUs and 7.7 GB (from `docker info`): 500 site checks per configuration went from 40.9 per minute with 1 worker process to 322.8 with 8 (7.88x), and every one of the 2,000 jobs had exactly one attempt and one run per device. The first report said jobs got slower with more workers, although the median had dropped from 4.4 s to 4.3 s: that sentence was fixed text. Every observation in [performance.md](performance.md) is now computed from the numbers, and the chart uses a numeric workers axis, so linear scaling draws as a straight line.
 
+**Quickstart, 2026-09-29.** From a fresh clone at commit `c19c4e2`, `make dev` brought every service up healthy, the demo walkthrough ran all eight steps in 92 s (the pixel alert and then the recovery email arrived in Mailpit), and `make check URL=https://example.com` printed a clean report for a real site.
+
 ### Verification pass, 2026-09-28
 
 The earlier milestones were built in an environment without general internet access. This pass ran on a laptop with internet access (macOS, Docker Desktop), starting from a fresh clone.
