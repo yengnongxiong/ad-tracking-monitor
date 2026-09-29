@@ -1,0 +1,92 @@
+{
+  "machine": {
+    "cpus": 4,
+    "cpu_model": "aarch64",
+    "memory_gb": 7.7,
+    "python": "3.12.3",
+    "date": "2026-09-29 05:05",
+    "commit": "069502f"
+  },
+  "sites": 500,
+  "results": [
+    {
+      "jobs": 500,
+      "succeeded": 500,
+      "elapsed_s": 732.801905,
+      "checks_per_min": 40.93875820369217,
+      "job_p50_s": 4.3705514999999995,
+      "job_p95_s": 4.452756,
+      "jobs_with_more_than_one_attempt": 0,
+      "duplicate_runs": 0,
+      "jobs_missing_runs": 0,
+      "jobs_per_worker": {
+        "bench-worker-0": 500
+      },
+      "workers": 1,
+      "slots": 3,
+      "cpu_busy": 0.05540825786940264
+    },
+    {
+      "jobs": 500,
+      "succeeded": 500,
+      "elapsed_s": 373.488154,
+      "checks_per_min": 80.32383270715461,
+      "job_p50_s": 4.4292615,
+      "job_p95_s": 4.612225,
+      "jobs_with_more_than_one_attempt": 0,
+      "duplicate_runs": 0,
+      "jobs_missing_runs": 0,
+      "jobs_per_worker": {
+        "bench-worker-0": 249,
+        "bench-worker-1": 251
+      },
+      "workers": 2,
+      "slots": 6,
+      "cpu_busy": 0.0959122029802658
+    },
+    {
+      "jobs": 500,
+      "succeeded": 500,
+      "elapsed_s": 182.627914,
+      "checks_per_min": 164.26842612898704,
+      "job_p50_s": 4.2885415,
+      "job_p95_s": 4.586854,
+      "jobs_with_more_than_one_attempt": 0,
+      "duplicate_runs": 0,
+      "jobs_missing_runs": 0,
+      "jobs_per_worker": {
+        "bench-worker-0": 125,
+        "bench-worker-1": 124,
+        "bench-worker-2": 126,
+        "bench-worker-3": 125
+      },
+      "workers": 4,
+      "slots": 12,
+      "cpu_busy": 0.17517916832881686
+    },
+    {
+      "jobs": 500,
+      "succeeded": 500,
+      "elapsed_s": 92.944148,
+      "checks_per_min": 322.77449033154835,
+      "job_p50_s": 4.265299499999999,
+      "job_p95_s": 4.932439,
+      "jobs_with_more_than_one_attempt": 0,
+      "duplicate_runs": 0,
+      "jobs_missing_runs": 0,
+      "jobs_per_worker": {
+        "bench-worker-0": 61,
+        "bench-worker-1": 63,
+        "bench-worker-2": 63,
+        "bench-worker-3": 63,
+        "bench-worker-4": 63,
+        "bench-worker-5": 61,
+        "bench-worker-6": 63,
+        "bench-worker-7": 63
+      },
+      "workers": 8,
+      "slots": 24,
+      "cpu_busy": 0.3460297665844335
+    }
+  ]
+}

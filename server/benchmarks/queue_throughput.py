@@ -281,7 +281,8 @@ def machine() -> dict[str, Any]:
         mem_kb = 0
     return {
         "cpus": os.cpu_count(),
-        "cpu_model": model,
+        # ARM Linux (e.g. Docker on Apple silicon) has no "model name" line.
+        "cpu_model": model or platform.machine(),
         "memory_gb": round(mem_kb / 1024 / 1024, 1),
         "python": platform.python_version(),
     }
@@ -292,17 +293,34 @@ def chart(results: list[dict[str, Any]], path: Path) -> None:
     rates = [r["checks_per_min"] for r in results]
     base = rates[0] / workers[0]
     figure, axes = plt.subplots(figsize=(6, 3.6), dpi=150)
-    axes.bar([str(w) for w in workers], rates, color="#3f3f46", label="measured")
+    # A numeric x axis, so linear scaling draws as a straight line.
     axes.plot(
-        [str(w) for w in workers],
-        [base * w for w in workers],
+        [0, workers[-1]],
+        [0, base * workers[-1]],
         color="#a1a1aa",
         linestyle="--",
-        marker="o",
+        linewidth=1.5,
         label="linear scaling from 1 worker",
     )
-    for x, rate in enumerate(rates):
-        axes.annotate(f"{rate:.0f}", (x, rate), ha="center", va="bottom", fontsize=9)
+    axes.plot(
+        workers, rates, color="#3f3f46", linewidth=2, marker="o", markersize=7, label="measured"
+    )
+    for x, rate in [(workers[0], rates[0]), (workers[-1], rates[-1])]:
+        axes.annotate(
+            f"{rate:.0f}/min",
+            (x, rate),
+            xytext=(8, -4),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+            fontsize=9,
+            color="#3f3f46",
+        )
+    axes.set_xticks(workers)
+    axes.set_xlim(0, workers[-1] * 1.12)
+    axes.set_ylim(0, max([*rates, base * workers[-1]]) * 1.1)
+    axes.grid(axis="y", color="#e4e4e7", linewidth=0.8)
+    axes.set_axisbelow(True)
     axes.set_xlabel(f"Worker processes ({SLOTS_PER_WORKER} capture slots each)")
     axes.set_ylabel("Site checks per minute")
     axes.legend(frameon=False, loc="upper left")
@@ -387,12 +405,31 @@ def reading(results: list[dict[str, Any]], info: dict[str, Any]) -> list[str]:
         lines.append(
             f"- The CPUs weren't saturated even at {last['workers']} workers "
             f"({last['cpu_busy']:.0%} busy), so the jobs' own waiting (2 s of network quiet "
-            "per page load) dominates, and more capture slots per worker would add throughput."
+            "per page load) dominates, and more capture slots per worker should add throughput."
         )
+    if last["job_p50_s"] > first["job_p50_s"] * 1.1:
+        lines.append(
+            f"- A job took {first['job_p50_s']:.1f} s (median) with {first['workers']} worker "
+            f"and {last['job_p50_s']:.1f} s with {last['workers']}: when the CPUs are shared by "
+            "more concurrent page loads, each one takes longer."
+        )
+    else:
+        lines.append(
+            f"- A job took about as long with {last['workers']} workers as with "
+            f"{first['workers']} ({last['job_p50_s']:.1f} s vs {first['job_p50_s']:.1f} s "
+            "median), so the extra workers didn't slow each other down."
+        )
+    # If every slot started its next job the instant the last one finished, throughput would
+    # be slots / job time. What's missing is the queue's overhead plus the idle tail at the end.
+    efficiency = [r["checks_per_min"] / (r["slots"] * 60 / r["job_p50_s"]) for r in results]
+    worst = results[efficiency.index(min(efficiency))]
     lines.append(
-        f"- A job took {first['job_p50_s']:.1f} s (median) with {first['workers']} worker and "
-        f"{last['job_p50_s']:.1f} s with {last['workers']}: when the CPUs are shared by more "
-        "concurrent page loads, each one takes longer."
+        f"- Measured throughput was {min(efficiency):.0%} to {max(efficiency):.0%} of the "
+        "ceiling of capture slots x 60 / median job time, so claiming jobs, heartbeats and "
+        "saving results add little on top of the page loads. Part of the gap is the end of "
+        "each run, when slots sit idle while the last jobs finish: with "
+        f"{worst['workers']} worker{'s' if worst['workers'] > 1 else ''}, one job's time is "
+        f"{worst['job_p50_s'] / worst['elapsed_s']:.0%} of the {worst['elapsed_s']:.0f} s run."
     )
     lines.append(
         "- Real sites add network latency per page: jobs take longer but use little extra "

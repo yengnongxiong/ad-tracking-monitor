@@ -8,7 +8,7 @@ tag-monitor was built in milestones M0 to M10 from [PRD.md](PRD.md). This log re
 |---|---|
 | Monitoring: capture, checks, queue, alerts, API, dashboard | Done. The full demo flow runs end to end in a real browser (below). |
 | Tracking patterns | Verified against live sites on 2026-09-28 ([details](#verification-pass-2026-09-28)). |
-| Queue benchmark | Tooling done. `make bench` writes [performance.md](performance.md). |
+| Queue benchmark | Done. 40.9 to 322.8 site checks per minute from 1 to 8 workers, with no job run twice ([performance.md](performance.md)). |
 | Research scan | Tooling done and smoke-tested. The real run needs the hand-compiled `data/scan/targets.csv`. |
 | Message match evals | Tooling done and tested. The results need human labels and an API key ([evals README](../evals/message_match/README.md)). |
 | Deployment | Not hosted, by decision: it runs locally with `make dev` ([ADR-020](decisions.md#adr-020-run-locally-no-hosted-deployment-m10)). |
@@ -105,6 +105,8 @@ The PRD was reviewed before any code was written. These are the places where fol
 ## M10: Benchmark, ops, retention, and the verification pass
 
 **Built:** the queue throughput benchmark (`make bench`), the ops page, and the retention job ([ADR-018](decisions.md#adr-018-retention-keeps-each-sites-latest-state-and-deletes-rows-before-objects-m10)).
+
+**Benchmark, 2026-09-29.** `make bench` on an Apple M4 Mac, with Docker limited to 4 CPUs and 7.7 GB (from `docker info`): 500 site checks per configuration went from 40.9 per minute with 1 worker process to 322.8 with 8 (7.88x), and every one of the 2,000 jobs had exactly one attempt and one run per device. The first report said jobs got slower with more workers, although the median had dropped from 4.4 s to 4.3 s: that sentence was fixed text. Every observation in [performance.md](performance.md) is now computed from the numbers, and the chart uses a numeric workers axis, so linear scaling draws as a straight line.
 
 ### Verification pass, 2026-09-28
 

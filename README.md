@@ -62,7 +62,13 @@ flowchart LR
 
 ## Queue scaling benchmark
 
-`make bench` runs 500 real site checks against local fixture pages with 1, 2, 4 and 8 worker processes and verifies that no job ran twice. Results, with the machine they ran on: [docs/performance.md](docs/performance.md).
+`make bench` runs 500 real site checks against local fixture pages with 1, 2, 4 and 8 worker processes, and verifies that no job ran twice.
+
+On an Apple M4 Mac, with Docker limited to 4 CPUs and 7.7 GB of RAM, throughput grew in step with the workers: **40.9 site checks per minute with 1 worker, 80.3 with 2, 164.3 with 4 and 322.8 with 8** (7.88x for 8x the workers). All 2,000 jobs ran exactly once: no retries, no duplicate runs, none missing. The CPUs were at most 35% busy, because a check spends most of its time (a median of 4.3 to 4.4 s) waiting for the page to go quiet, and measured throughput stayed within 96% to 99% of what the capture slots could deliver, so the queue itself adds little.
+
+![Site checks per minute with 1, 2, 4 and 8 worker processes, next to linear scaling](docs/performance/throughput.png)
+
+Full results, per-worker job counts and the method: [docs/performance.md](docs/performance.md).
 
 ## Research findings
 
