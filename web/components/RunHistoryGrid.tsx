@@ -9,6 +9,7 @@ const ROWS: { key: string; title: string }[] = [
   { key: "page_speed", title: "Mobile speed" },
   { key: "mobile_render", title: "Mobile layout" },
   { key: "page_health", title: "Page health" },
+  { key: "message_match", title: "Message match" },
 ];
 
 const CELL: Record<Status, string> = {
@@ -23,6 +24,9 @@ const CELL: Record<Status, string> = {
 export function RunHistoryGrid({ runs }: { runs: RunSummary[] }) {
   const columns = [...runs].reverse();
   if (columns.length === 0) return <p className="text-sm text-zinc-500">No checks yet.</p>;
+  // Message match only runs for sites with ad copy, so its row only shows once it has run.
+  const hasMessageMatch = runs.some((run) => run.results.some((r) => r.check_key === "message_match"));
+  const rows = ROWS.filter((row) => row.key !== "message_match" || hasMessageMatch);
   return (
     <div className="overflow-x-auto">
       <table className="border-separate border-spacing-1 text-xs">
@@ -38,7 +42,7 @@ export function RunHistoryGrid({ runs }: { runs: RunSummary[] }) {
           </tr>
         </thead>
         <tbody>
-          {ROWS.map((row) => (
+          {rows.map((row) => (
             <tr key={row.key}>
               <th scope="row" className="whitespace-nowrap pr-3 text-left font-normal text-zinc-600 dark:text-zinc-400">
                 {row.title}

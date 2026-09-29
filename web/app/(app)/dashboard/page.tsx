@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CheckNowButton } from "@/components/CheckNowButton";
 import { StatusDot } from "@/components/Status";
 import { button } from "@/components/ui";
-import { columnStatus, STATUS_COLUMNS } from "@/lib/checks";
+import { columnStatus, hasAdCopy, STATUS_COLUMNS } from "@/lib/checks";
 import { timeFrom } from "@/lib/format";
 import type { Site } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
@@ -66,7 +66,12 @@ export default function DashboardPage() {
                     {site.paused && <div className="text-xs text-amber-700">Paused</div>}
                   </td>
                   {STATUS_COLUMNS.map((column) => {
-                    const { status, summary } = columnStatus(site.statuses, column.keys);
+                    // Message match only runs with ad copy: without it, say it's not set up
+                    // rather than "not checked yet" forever.
+                    const { status, summary } =
+                      column.keys.includes("message_match") && !hasAdCopy(site)
+                        ? { status: "info" as const, summary: "Add your ad copy to turn this on." }
+                        : columnStatus(site.statuses, column.keys);
                     return (
                       <td key={column.label} className="px-2 py-3 text-center">
                         <StatusDot status={status} label={`${column.hint}: ${summary}`} />

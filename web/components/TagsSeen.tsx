@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { button, card } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { LatestResult, SiteDetail } from "@/lib/types";
 
 const TAGS: { key: string; label: string; expectedField: keyof SiteDetail & `expected_${string}` }[] = [
@@ -17,14 +17,21 @@ const TAGS: { key: string; label: string; expectedField: keyof SiteDetail & `exp
  *  that later disappears raises an alert instead of a quiet "not installed". */
 export function TagsSeen({ site, onChanged }: { site: SiteDetail; onChanged: () => void }) {
   const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const byKey = new Map(site.latest_results.map((r) => [r.check_key, r] as [string, LatestResult]));
   const gtm = byKey.get("google_gtm")?.details.ids ?? [];
 
   async function expect(field: string, ids: string[]) {
     setSaving(field);
-    await api(`/sites/${site.id}`, { method: "PATCH", body: { [field]: ids } });
-    setSaving(null);
-    onChanged();
+    setError(null);
+    try {
+      await api(`/sites/${site.id}`, { method: "PATCH", body: { [field]: ids } });
+      onChanged();
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Couldn't save. Try again.");
+    } finally {
+      setSaving(null);
+    }
   }
 
   return (
@@ -70,6 +77,11 @@ export function TagsSeen({ site, onChanged }: { site: SiteDetail; onChanged: () 
           </div>
         );
       })}
+      {error && (
+        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+          {error}
+        </p>
+      )}
       <div className="text-sm">
         <div className="font-medium">Tag Manager</div>
         <div className="text-zinc-600 dark:text-zinc-400">{gtm.length ? gtm.join(", ") : "None seen"}</div>
