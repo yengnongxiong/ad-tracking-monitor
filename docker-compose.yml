@@ -130,6 +130,7 @@ services:
     volumes:
       - ./server/src:/app/server/src
       - ./server/tests:/app/server/tests
+      - ./server/pyproject.toml:/app/server/pyproject.toml:ro  # tool config (ruff, mypy, pytest)
       - ./db:/app/db
       - ./docs:/app/docs:ro  # a test checks docs/check-explanations.md is up to date
 

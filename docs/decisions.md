@@ -42,7 +42,7 @@ Each entry follows Context / Decision / Alternatives considered / Consequences. 
 - Bearer tokens in `localStorage`: readable by any XSS on the page, unlike an httpOnly cookie.
 - Calling FastAPI only from Next.js server code: works, but duplicates every endpoint as a Next route.
 
-**Consequences.** Every API request takes one extra hop through the Next.js server. FastAPI sees the Next.js server as the client, so anything that needs the real client IP (the login rate limit, M6) must read `X-Forwarded-For` and trust it only from the web tier. In production builds (`next build`), the rewrite destination is fixed at build time, so `API_INTERNAL_URL` must be set when building.
+**Consequences.** Every API request takes one extra hop through the Next.js server. FastAPI sees the Next.js server as the client. Verified in M6 against the Next.js 16.3 source: rewrites to an external URL are proxied **without adding `X-Forwarded-For`** (`httpxy` without `xfwd`), and a client-supplied `X-Forwarded-For` passes straight through. So the API must **not** trust that header behind this proxy (`TRUST_PROXY_HEADERS` defaults to false): if it did, an attacker could send a new fake IP with every login attempt and bypass the per-email+IP rate limit. Behind the Next.js proxy the login limit is therefore effectively per email, which still stops password guessing. In production, put a load balancer or CDN in front that *overwrites* `X-Forwarded-For`, and only then set `TRUST_PROXY_HEADERS=true` (the API uses the last hop). In production builds (`next build`), the rewrite destination is fixed at build time, so `API_INTERNAL_URL` must be set when building.
 
 ---
 
@@ -204,3 +204,20 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** Sending from the capture job directly (loses or duplicates alerts as described above). A separate message broker (a second system for what one table and the existing queue already do).
 
 **Consequences.** An alert is committed if and only if its results are, and it's delivered at least once; the provider-side idempotency key makes a duplicate unlikely even if a retry re-sends after a crash. Email content is frozen at alert time, so later edits to explanations don't rewrite history. The "last worked / failing since" lines come from a window-function query (`lag()` to find where the current failing streak began) over the check history.
+
+---
+
+## ADR-014: Server-side sessions in Postgres, cookie + header CSRF defense (M6)
+
+**Context.** The dashboard needs login. The PRD asks for httpOnly SameSite=Lax cookies with 30-day sliding sessions, argon2id passwords, a login rate limit, and an X-Requested-With header on mutating requests.
+
+**Decision.**
+- **Sessions are rows**, not JWTs. The cookie holds 32 random bytes; the database stores only their SHA-256, so a database leak doesn't hand out working sessions. Logout deletes the row (JWTs can't really be revoked). Sessions slide: an active session is extended to 30 days, at most once an hour, so browsing doesn't write on every request.
+- **Passwords** use argon2id (argon2-cffi defaults), hashed in a thread so the event loop keeps serving. Unknown emails still run a verify against a dummy hash, so response time doesn't reveal which emails have accounts, and both failures return the same message. Hashes are upgraded transparently if the default parameters get stronger.
+- **CSRF:** SameSite=Lax already keeps the cookie off cross-site POSTs. On top of that, every mutating `/api/*` request must carry `X-Requested-With`, which a cross-site form can't add without a CORS preflight we never approve.
+- **Login rate limit:** failed attempts are rows in `login_attempts` keyed by `email|ip`; the sixth failure within 15 minutes gets `429` with `Retry-After`, and a success clears the key. Stored in Postgres so it survives restarts and holds across API instances. The IP comes from the socket unless `TRUST_PROXY_HEADERS` is set (see ADR-003 for why it isn't behind the Next.js proxy).
+- **Tenant isolation:** every query that touches sites, runs, jobs or alerts joins through `sites.user_id = current user`. Another user's id gets the same 404 as a missing one. A dedicated test walks every endpoint as the wrong user.
+
+**Alternatives considered.** JWT access and refresh tokens (stateless, but revocation needs a denylist, i.e. state again, and tokens in JavaScript-readable storage are exposed to XSS). A full auth provider (Auth0, Clerk): the right call for a product, but it hides exactly the parts this project wants to show.
+
+**Consequences.** One indexed lookup per request (`sessions.token_hash` is unique). Expired sessions and old login attempts need periodic cleanup (M10 retention).

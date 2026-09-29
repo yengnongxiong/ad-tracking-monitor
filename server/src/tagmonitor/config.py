@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     smtp_starttls: bool = False
     resend_api_key: str | None = None
 
+    # API (PRD §17).
+    session_cookie_secure: bool = False  # True in production (HTTPS)
+    # Read the client IP from X-Forwarded-For (last hop). Only when the API is reachable
+    # solely through our own proxy (the Next.js server), or clients could spoof their IP.
+    trust_proxy_headers: bool = False
+    check_now_cooldown_seconds: int = 300
+
     @field_validator("ssrf_allow_hosts", mode="before")
     @classmethod
     def _split_hosts(cls, value: object) -> object:
