@@ -4,7 +4,9 @@
 
 For each URL (real network, no stubs), lists the Meta/Google requests each pattern matched
 and, most importantly, requests to tag hosts that matched no pattern: that's how you notice
-an endpoint that moved. Record the date of a clean run in checks/tracking_patterns.py.
+an endpoint that moved. Traffic we recognize but deliberately don't count (Google Signals,
+cookie matching, Floodlight) is only counted, so it doesn't bury the new stuff. Record the
+date of a clean run in checks/tracking_patterns.py.
 """
 
 import asyncio
@@ -15,7 +17,7 @@ import typer
 from rich.console import Console
 
 from tagmonitor.browser.capturer import PageCapturer
-from tagmonitor.checks.tracking_patterns import classify, is_tag_host
+from tagmonitor.checks.tracking_patterns import classify, is_known_uncounted, is_tag_host
 from tagmonitor.config import get_settings
 from tagmonitor.page_capture import PageCapture
 
@@ -43,7 +45,10 @@ def main(urls: Annotated[list[str], typer.Argument(help="Live landing pages to l
         matched = Counter(label for r in tag_requests if (label := classify(r)))
         for label, count in sorted(matched.items()):
             console.print(f"  [green]{label}[/green]: {count}")
-        unmatched = [r for r in tag_requests if classify(r) is None]
+        unclassified = [r for r in tag_requests if classify(r) is None]
+        if known := sum(is_known_uncounted(r.url) for r in unclassified):
+            console.print(f"  [dim]known, deliberately not counted: {known}[/dim]")
+        unmatched = [r for r in unclassified if not is_known_uncounted(r.url)]
         if unmatched:
             console.print(f"  [yellow]{len(unmatched)} tag-host requests matched no pattern:[/]")
             for request in unmatched[:25]:

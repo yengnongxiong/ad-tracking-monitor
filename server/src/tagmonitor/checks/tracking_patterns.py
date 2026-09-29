@@ -9,8 +9,10 @@ re-verify against live sites from time to time:
 The command prints which requests matched and, more importantly, requests to Meta/Google
 tag hosts that matched nothing (a sign that an endpoint moved).
 
-Last verified against live sites: NOT YET. The build environment has no general internet
-access; the first verification run and its date belong here and in docs/milestones/M3.md.
+Last verified against live sites: 2026-09-28, on four large US online retailers' home pages
+(mobile, no consent interaction). Meta Pixel, GA4, Google Ads and Tag Manager traffic all
+matched. That run found two endpoints that were then added: gtag/destination script loads and
+googleadservices.com/ccm/conversion/ hits.
 """
 
 import re
@@ -31,7 +33,9 @@ TAG_HOSTS = (
 )
 
 _META_CONFIG_PATH = re.compile(r"^/signals/config/(\d+)")
-_ADS_PATH = re.compile(r"^/pagead/(?:viewthroughconversion|conversion)/(\d+)/?", re.IGNORECASE)
+_ADS_PATH = re.compile(
+    r"^/(?:pagead/(?:viewthroughconversion|conversion)|ccm/conversion)/(\d+)/?", re.IGNORECASE
+)
 _MULTIPART_FIELD = re.compile(
     rb'Content-Disposition:\s*form-data;\s*name="([^"]+)"\r?\n\r?\n([^\r\n]*)', re.IGNORECASE
 )
@@ -117,7 +121,9 @@ class GoogleScript:
 
 
 def parse_google_script(url: str) -> GoogleScript | None:
-    """googletagmanager.com/gtm.js?id=GTM-... or googletagmanager.com/gtag/js?id=G-|AW-|GT-..."""
+    """googletagmanager.com/gtm.js?id=GTM-..., or a gtag load for a G-, AW- or GT- id:
+    /gtag/js?id=... on the page, or /gtag/destination?id=... when a Google tag or a GTM
+    container pulls in a linked destination (often with no /gtag/js request for that id)."""
     if not _host_matches(_host(url), "googletagmanager.com"):
         return None
     parts = urlsplit(url)
@@ -127,7 +133,7 @@ def parse_google_script(url: str) -> GoogleScript | None:
     tag_id = tag_id.upper()
     if parts.path == "/gtm.js" and tag_id.startswith("GTM-"):
         return GoogleScript("gtm", tag_id)
-    if parts.path == "/gtag/js" and tag_id.startswith(("G-", "AW-", "GT-")):
+    if parts.path in ("/gtag/js", "/gtag/destination") and tag_id.startswith(("G-", "AW-", "GT-")):
         return GoogleScript("gtag", tag_id)
     return None
 
@@ -175,7 +181,8 @@ def parse_ads_hit(url: str) -> AdsHit | None:
     """Google Ads: remarketing page views and conversions.
 
     googleads.g.doubleclick.net/pagead/viewthroughconversion/<id>/ is sent on page view by an
-    AW- tag; googleadservices.com/pagead/conversion/<id>/ is a conversion.
+    AW- tag; googleadservices.com/pagead/conversion/<id>/ is a conversion, and gtag.js also
+    sends it to /ccm/conversion/<id>/ with the same id and label.
     """
     host = _host(url)
     if not (
@@ -212,6 +219,26 @@ def classify(request: NetworkRequest) -> str | None:
     if parse_ads_hit(url):
         return "ads hit"
     return None
+
+
+# Tag-host traffic seen on real pages that we deliberately don't count (2026-09-28 run).
+# Listed so verify_patterns can tell "known, not counted" from "an endpoint that moved".
+_KNOWN_UNCOUNTED = (
+    ("stats.g.doubleclick.net", "/g/collect"),  # Google Signals' copy of a GA4 hit
+    ("ad.doubleclick.net", "/ccm/s/collect"),  # carries no tag id to attribute it to
+    ("cm.g.doubleclick.net", "/pixel"),  # ad networks matching cookie ids
+    ("doubleclick.net", "/activity"),  # Floodlight (Campaign Manager), not Google Ads
+)
+
+
+def is_known_uncounted(url: str) -> bool:
+    host, path = _host(url), urlsplit(url).path
+    if _host_matches(host, "googletagmanager.com") and path == "/gtag/destination":
+        return parse_google_script(url) is None  # MC- (Merchant Center) or DC- (Floodlight)
+    return any(
+        _host_matches(host, domain) and path.startswith(prefix)
+        for domain, prefix in _KNOWN_UNCOUNTED
+    )
 
 
 def is_tracking_hit(url: str) -> bool:

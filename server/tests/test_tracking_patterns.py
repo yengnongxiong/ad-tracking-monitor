@@ -8,6 +8,7 @@ from tagmonitor.checks.tracking_patterns import (
     GoogleScript,
     MetaHit,
     classify,
+    is_known_uncounted,
     is_meta_script,
     is_tag_host,
     meta_config_pixel_id,
@@ -112,6 +113,16 @@ def test_not_meta_hits(url: str) -> None:
         ),
         ("https://www.googletagmanager.com/gtag/js?id=GT-KDEF", GoogleScript("gtag", "GT-KDEF")),
         ("https://www.googletagmanager.com/gtag/js?id=g-lower1", GoogleScript("gtag", "G-LOWER1")),
+        # A Google tag or GTM container loads each linked destination this way (seen live on
+        # 2026-09-28, sometimes with no gtag/js request for that id at all).
+        (
+            "https://www.googletagmanager.com/gtag/destination?id=G-J11MBLGD5V&cx=c&gtm=4e69p1",
+            GoogleScript("gtag", "G-J11MBLGD5V"),
+        ),
+        (
+            "https://www.googletagmanager.com/gtag/destination?id=AW-960833610&cx=c",
+            GoogleScript("gtag", "AW-960833610"),
+        ),
     ],
 )
 def test_google_scripts(url: str, expected: GoogleScript) -> None:
@@ -124,6 +135,9 @@ def test_google_scripts(url: str, expected: GoogleScript) -> None:
         "https://www.googletagmanager.com/gtm.js",  # no id
         "https://www.googletagmanager.com/gtag/js?id=UA-1-1",  # retired Universal Analytics
         "https://www.googletagmanager.com/ns.html?id=GTM-ABC123",  # noscript iframe
+        # Merchant Center and Floodlight destinations are neither GA4 nor Google Ads.
+        "https://www.googletagmanager.com/gtag/destination?id=MC-CKB65RMMGX&cx=c",
+        "https://www.googletagmanager.com/gtag/destination?id=DC-10419326&cx=c",
     ],
 )
 def test_not_google_scripts(url: str) -> None:
@@ -167,6 +181,11 @@ def test_not_ga4_hits() -> None:
             "https://www.googleadservices.com/pagead/conversion/123456789/?label=AbC&value=10",
             AdsHit("AW-123456789", "conversion"),
         ),
+        # Sent alongside /pagead/conversion/ with the same id and label (seen live).
+        (
+            "https://www.googleadservices.com/ccm/conversion/960173363/?cv=11&fmt=3&en=conversion",
+            AdsHit("AW-960173363", "conversion"),
+        ),
     ],
 )
 def test_ads_hits(url: str, expected: AdsHit) -> None:
@@ -188,3 +207,23 @@ def test_tag_hosts_and_classification() -> None:
     assert not is_tag_host("https://cdn.shop.example/app.js")
     assert classify(request("https://www.facebook.com/tr/?id=1&ev=PageView")) == "meta hit"
     assert classify(request("https://www.facebook.com/privacy_sandbox/pixel/register")) is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        # Google Signals' copy of a GA4 hit: counting it would report every page view twice.
+        "https://stats.g.doubleclick.net/g/collect?v=2&tid=G-ABC&cid=1.2",
+        "https://ad.doubleclick.net/ccm/s/collect?auid=1.2&fmt=8",  # carries no tag id
+        "https://cm.g.doubleclick.net/pixel?google_nid=aplv",  # ad-network cookie matching
+        "https://www.googletagmanager.com/gtag/destination?id=DC-10419326&cx=c",  # Floodlight
+    ],
+)
+def test_known_uncounted_requests(url: str) -> None:
+    """verify_patterns lists these separately, so "matched no pattern" means something new."""
+    assert classify(request(url, "POST")) is None
+    assert is_known_uncounted(url)
+
+
+def test_tag_hits_are_not_known_uncounted() -> None:
+    assert not is_known_uncounted("https://analytics.google.com/g/collect?tid=G-ABC&en=page_view")

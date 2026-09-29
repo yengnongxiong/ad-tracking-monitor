@@ -173,6 +173,13 @@ def test_ga4_batched_post_counts() -> None:
     assert outcome(run(GA4, capture(gtag("G-ABC"), batched))) == ("pass", "firing")
 
 
+def test_ga4_loaded_as_a_destination_but_silent_is_installed_not_firing() -> None:
+    """Regression: GTM-managed GA4 often loads only via gtag/destination (seen live). Without
+    recognizing it, a silent GA4 tag looked "not installed" instead of broken."""
+    page = capture(gtm("GTM-1"), req("https://www.googletagmanager.com/gtag/destination?id=G-ABC"))
+    assert outcome(run(GA4, page)) == ("fail", "installed_not_firing")
+
+
 def test_google_tag_gt_id_alone_is_not_ga4() -> None:
     assert outcome(run(GA4, capture(gtag("GT-XYZ")))) == ("info", "not_installed")
 
@@ -203,6 +210,11 @@ def test_ads_installed_not_firing_and_wrong_id() -> None:
     assert outcome(run(ADS, capture(gtag("AW-123")))) == ("fail", "installed_not_firing")
     site = SiteConfig(url=SITE_URL, expected_google_ads_ids=["AW-999"])
     assert outcome(run(ADS, capture(gtag("AW-123"), ads_hit("123")), site)) == ("fail", "wrong_id")
+
+
+def test_ads_loaded_as_a_destination_but_silent_is_installed_not_firing() -> None:
+    page = capture(gtm("GTM-1"), req("https://www.googletagmanager.com/gtag/destination?id=AW-123"))
+    assert outcome(run(ADS, page)) == ("fail", "installed_not_firing")
 
 
 def test_ads_not_installed() -> None:
