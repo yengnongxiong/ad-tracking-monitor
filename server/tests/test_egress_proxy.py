@@ -89,6 +89,17 @@ async def test_reports_connection_failures() -> None:
     assert proxy.failures[0].code == "connection_failed"
 
 
+async def test_tries_every_validated_address(fixture_server: FixtureServer) -> None:
+    """Regression: only the first DNS answer was tried, so a site whose first address was
+    unreachable (typically IPv6 on a host without IPv6) looked down. The fixture server only
+    listens on 127.0.0.1, so ::1 refuses the connection."""
+    resolver = StaticResolver({FIXTURE_HOST: ["::1", "127.0.0.1"]})
+    async with EgressProxy(TEST_POLICY, resolver) as proxy:
+        response = await send(proxy, get(fixture_server.url("no_tags")))
+    assert response.startswith(b"HTTP/1.0 200")
+    assert proxy.failures == []
+
+
 async def test_resolves_each_host_once_per_capture(fixture_server: FixtureServer) -> None:
     class CountingResolver(StaticResolver):
         calls = 0

@@ -4,8 +4,9 @@ Why a proxy (ADR-004): Playwright's context.route() is never called for redirect
 public page that redirects to http://127.0.0.1/ would get past a route-based check. Forcing
 the browser context through this proxy means every connection is checked first: navigations,
 each redirect hop, subresources, iframes, WebSockets, CORS preflights. The proxy then
-connects to the exact address it validated, so DNS can't give a different answer between the
-check and the connection (DNS rebinding), at least for browser traffic.
+connects only to the addresses it validated (trying each in turn, like a browser), so DNS
+can't give a different answer between the check and the connection (DNS rebinding), at least
+for browser traffic.
 
 It speaks only what Chromium needs from a proxy:
 - CONNECT host:port: a byte tunnel, used for HTTPS and wss. We see the host, never the content.
@@ -93,8 +94,8 @@ class EgressProxy:
         if failure not in self.failures:
             self.failures.append(failure)
 
-    async def _authorize(self, host: str, port: int) -> IPAddress:
-        """Return the address to connect to, or raise SsrfError. Cached per capture."""
+    async def _authorize(self, host: str, port: int) -> list[IPAddress]:
+        """Return the addresses we may connect to, or raise SsrfError. Cached per capture."""
         key = normalize_host(host)
         if key not in self._resolved:
             try:
@@ -105,20 +106,27 @@ class EgressProxy:
         if isinstance(result, SsrfError):
             self._record(key, port, result)
             raise result
-        return result[0]
+        return result
 
     async def _open(
         self, host: str, port: int
     ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        address = await self._authorize(host, port)
-        try:
-            return await asyncio.wait_for(
-                asyncio.open_connection(str(address), port), CONNECT_TIMEOUT_S
-            )
-        except (OSError, TimeoutError) as exc:
-            error = SsrfError("connection_failed", f"could not connect to {host}:{port}: {exc}")
-            self._record(normalize_host(host), port, error)
-            raise error from exc
+        # Every address passed the policy, so any of them is safe. Hosts often list several
+        # (IPv6 and IPv4, or a few servers); one that's unreachable mustn't make the site look
+        # down, so try them in order until one answers.
+        problems = []
+        for address in await self._authorize(host, port):
+            try:
+                return await asyncio.wait_for(
+                    asyncio.open_connection(str(address), port), CONNECT_TIMEOUT_S
+                )
+            except (OSError, TimeoutError) as exc:
+                problems.append(f"{address}: {exc or type(exc).__name__}")
+        error = SsrfError(
+            "connection_failed", f"could not connect to {host}:{port} ({'; '.join(problems)})"
+        )
+        self._record(normalize_host(host), port, error)
+        raise error
 
     # -- protocol ---------------------------------------------------------------------------
 
