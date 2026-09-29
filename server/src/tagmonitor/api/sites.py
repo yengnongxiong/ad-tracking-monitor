@@ -228,18 +228,50 @@ async def update_site(
             ).format(sql.Placeholder("check_interval_minutes"))
         )
     assignments.append(sql.SQL("updated_at = now()"))
-    query = sql.SQL("UPDATE sites SET {} WHERE id = {} AND user_id = {} RETURNING id").format(
+    query = sql.SQL("UPDATE sites SET {} WHERE id = {} AND user_id = {}").format(
         sql.SQL(", ").join(assignments), sql.Placeholder("_id"), sql.Placeholder("_user")
     )
 
-    async with pool.connection() as conn:
+    async with pool.connection() as conn, conn.transaction():
+        cursor = await conn.execute(
+            "SELECT normalized_url, ad_headline, ad_primary_text, ad_cta FROM sites "
+            "WHERE id = %s AND user_id = %s FOR UPDATE",
+            (site_id, user.id),
+        )
+        before = await cursor.fetchone()
+        if before is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found.")
         try:
-            cursor = await conn.execute(query, values | {"_id": site_id, "_user": user.id})
+            await conn.execute(query, values | {"_id": site_id, "_user": user.id})
         except errors.UniqueViolation as exc:
             raise HTTPException(status.HTTP_409_CONFLICT, "You already monitor that page.") from exc
-        if await cursor.fetchone() is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found.")
+        await _start_fresh_if_changed(conn, site_id, before, values)
         return await _fetch_site(conn, user.id, site_id)
+
+
+AD_FIELDS = ("ad_headline", "ad_primary_text", "ad_cta")
+
+
+async def _start_fresh_if_changed(
+    conn: Conn, site_id: UUID, before: dict[str, Any], values: dict[str, Any]
+) -> None:
+    """A different page, or a different ad, starts its alert history over. Otherwise the first
+    check could email "Resolved" or "Still broken" about something that is no longer
+    monitored. A new page is also checked right away, like a newly added one."""
+    if values.get("normalized_url", before["normalized_url"]) != before["normalized_url"]:
+        await conn.execute("DELETE FROM site_check_states WHERE site_id = %s", (site_id,))
+        await enqueue(
+            conn,
+            "capture_and_check",
+            {"site_id": str(site_id), "reason": "manual"},
+            priority=PRIORITY_MANUAL,
+            dedupe_key=f"site:{site_id}",
+        )
+    elif any(values.get(field, before[field]) != before[field] for field in AD_FIELDS):
+        await conn.execute(
+            "DELETE FROM site_check_states WHERE site_id = %s AND check_key = 'message_match'",
+            (site_id,),
+        )
 
 
 @router.delete("/{site_id}", status_code=status.HTTP_204_NO_CONTENT)

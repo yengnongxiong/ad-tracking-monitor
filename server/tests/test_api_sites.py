@@ -158,6 +158,65 @@ async def test_changing_the_url_is_checked_again(app: FastAPI) -> None:
     assert good.json()["url"] == "https://other.example.com/landing"
 
 
+async def alert_states(db: Pool, site_id: str) -> dict[str, str]:
+    async with db.connection() as conn:
+        cursor = await conn.execute(
+            "SELECT check_key, state FROM site_check_states WHERE site_id = %s", (site_id,)
+        )
+        return {row["check_key"]: row["state"] for row in await cursor.fetchall()}
+
+
+async def set_alerting(db: Pool, site_id: str, *check_keys: str) -> None:
+    async with db.connection() as conn:
+        for check_key in check_keys:
+            await conn.execute(
+                "INSERT INTO site_check_states (site_id, check_key, state, consecutive_fails) "
+                "VALUES (%s, %s, 'alerting', 2)",
+                (site_id, check_key),
+            )
+
+
+async def test_a_new_url_starts_fresh_and_is_checked_right_away(app: FastAPI, db: Pool) -> None:
+    """Regression: the old page's alert states carried over, so the new page's first check
+    could email "Resolved" about a page nobody monitors any more, and it waited for the
+    next scheduled check (up to a day) to run at all."""
+    browser = await signed_up(app)
+    site = await add_site(browser)
+    async with db.connection() as conn:  # the first check finished
+        await conn.execute("UPDATE jobs SET status = 'succeeded'")
+    await set_alerting(db, site["id"], "meta_pixel", "page_health")
+
+    unchanged = await browser.patch(f"/api/sites/{site['id']}", json={"url": site["url"]})
+    assert unchanged.json()["active_job"] is None
+    assert await alert_states(db, site["id"]) == {
+        "meta_pixel": "alerting",
+        "page_health": "alerting",
+    }
+
+    moved = await browser.patch(
+        f"/api/sites/{site['id']}", json={"url": "https://other.example.com/landing"}
+    )
+    assert moved.json()["active_job"]["status"] == "queued"
+    assert await alert_states(db, site["id"]) == {}
+
+
+async def test_new_ad_copy_resets_only_the_message_match_state(app: FastAPI, db: Pool) -> None:
+    browser = await signed_up(app)
+    site = await add_site(browser, ad_headline="Spring sale", ad_cta="Shop now")
+    await set_alerting(db, site["id"], "meta_pixel", "message_match")
+
+    # The edit form always sends every field: saving it unchanged must not reset anything.
+    same = {"ad_headline": "Spring sale", "ad_primary_text": None, "ad_cta": "Shop now"}
+    await browser.patch(f"/api/sites/{site['id']}", json=same)
+    assert await alert_states(db, site["id"]) == {
+        "meta_pixel": "alerting",
+        "message_match": "alerting",
+    }
+
+    await browser.patch(f"/api/sites/{site['id']}", json=same | {"ad_headline": "Summer sale"})
+    assert await alert_states(db, site["id"]) == {"meta_pixel": "alerting"}
+
+
 async def test_delete_site(app: FastAPI) -> None:
     browser = await signed_up(app)
     site = await add_site(browser)
