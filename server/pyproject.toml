@@ -17,6 +17,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "pandas>=3.0.6",
     "matplotlib>=3.11.2",
+    "anthropic>=1.9.0",
 ]
 
 [dependency-groups]
@@ -28,6 +29,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.9",
+    "scikit-learn>=1.9.1",
 ]
 
 [build-system]

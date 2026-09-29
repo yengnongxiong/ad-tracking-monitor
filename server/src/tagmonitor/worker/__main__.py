@@ -11,6 +11,7 @@ from tagmonitor.alerts.senders import make_email_sender
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import get_settings
 from tagmonitor.db.pool import create_pool
+from tagmonitor.llm.transport import AnthropicTransport
 from tagmonitor.scan.job import record_failed_scan_target, run_scan_job
 from tagmonitor.storage import ObjectStorage
 from tagmonitor.worker.capture_job import record_failed_capture, run_capture_job
@@ -42,6 +43,13 @@ async def main() -> None:
     # Each slot may hold a connection for a whole capture (the domain lock), plus a few for
     # claiming, heartbeats, the scheduler and the reaper.
     pool = create_pool(settings.database_url, max_size=settings.worker_concurrency * 2 + 4)
+    llm = None
+    if settings.anthropic_api_key:
+        llm = AnthropicTransport(
+            settings.anthropic_api_key,
+            timeout_s=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+        )
     async with (
         pool,
         PageCapturer(
@@ -57,13 +65,18 @@ async def main() -> None:
                 storage=storage,
                 email=make_email_sender(settings),
                 settings=settings,
+                llm=llm,
             ),
             worker_id=f"{socket.gethostname()}-{os.getpid()}",
             concurrency=settings.worker_concurrency,
             handlers=HANDLERS,
             dead_handlers=DEAD_HANDLERS,
         )
-        await worker.run(stop)
+        try:
+            await worker.run(stop)
+        finally:
+            if llm is not None:
+                await llm.aclose()
 
 
 if __name__ == "__main__":

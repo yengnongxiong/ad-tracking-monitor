@@ -7,6 +7,7 @@ from tagmonitor.alerts.senders import EmailSender
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.config import Settings
 from tagmonitor.db.pool import Pool
+from tagmonitor.llm.transport import LlmTransport
 from tagmonitor.queue.jobs import Job
 from tagmonitor.storage import ObjectStorage
 
@@ -18,6 +19,9 @@ class WorkerContext:
     storage: ObjectStorage
     email: EmailSender
     settings: Settings
+    # The Anthropic API, or None when no API key is configured (message match then reports
+    # that it's turned off).
+    llm: LlmTransport | None = None
 
 
 class JobError(Exception):

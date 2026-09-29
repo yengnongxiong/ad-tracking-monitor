@@ -16,7 +16,7 @@ from rich.table import Table
 from tagmonitor.browser.capturer import PageCapturer
 from tagmonitor.checks.base import CheckResult, SiteConfig, Status, worst_status
 from tagmonitor.checks.explanations import explain
-from tagmonitor.checks.registry import ALL_CHECKS, run_checks
+from tagmonitor.checks.registry import CAPTURE_CHECKS, run_checks
 from tagmonitor.config import get_settings
 from tagmonitor.page_capture import Device
 
@@ -69,7 +69,7 @@ def main(
     table.add_column("Desktop")
     table.add_column("What we found")
     to_fix: list[CheckResult] = []
-    for check in ALL_CHECKS:
+    for check in CAPTURE_CHECKS:  # message match needs ad copy and an API key
         found = {
             device: next((r for r in results if r.check_key == check.check_key), None)
             for device, results in by_device.items()

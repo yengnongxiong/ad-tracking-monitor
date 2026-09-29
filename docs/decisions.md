@@ -254,3 +254,26 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** A standalone scanner script with its own browser loop (faster to write, but a second copy of the capture, SSRF and politeness logic that could drift from the one users rely on). Checking robots.txt inside each `scan_url` job (the plan and its skip counts would only be known after the whole scan ran, and the 10 s gap would have to be a sleep inside a job holding a worker slot). Normal-approximation intervals (they collapse to zero width at 0% and 100%, exactly the shares this report will have in small categories).
 
 **Consequences.** The scan and monitoring share one worker pool, so a large scan slows nothing down but itself. Re-analysis is cheap: `scan analyze` reads rows already in Postgres, and the stored capture JSON allows re-running checks if a pattern changes. Sites behind a consent banner are measured as a first-time visitor sees them (no clicks), which the limitations section says.
+
+---
+
+## ADR-017: The model call happens outside the check; the check maps a verdict to a status (M9)
+
+**Context.** Message match (PRD §15) needs a language model's judgment of the ad against the page text. Every other check is a pure function of `(capture, site)` (ADR-005): no network, no database, unit-testable with saved captures. An API call is slow, costs money, can fail, and needs a cache and a daily budget.
+
+**Decision.**
+- **Split the I/O from the judgment.** `tagmonitor.llm.MessageMatcher` does the I/O: the cache lookup, a call reserved against the daily budget, the request, and validation. The worker calls it once per job, on the mobile capture, after releasing the per-domain lock (the model call doesn't touch the site). `MessageMatchCheck.analyze(capture, outcome)` is pure: it maps the verdict (or why there isn't one) to pass, warn or fail. `run_checks` takes the outcome as an optional argument; without one (no ad copy) the check doesn't run. A shared `CheckBase` keeps titles, codes and explanations uniform across both kinds of check.
+- **Structured output via a forced tool call.** The verdict's Pydantic model is the tool's input schema, and `tool_choice` forces the tool. The field order puts issues before scores, so the scores follow from what the model noticed. Invalid output gets exactly one retry, and the validation error goes back as an `is_error` tool result so the model can fix what was wrong.
+- **Cache key:** sha256 of the model, the prompt version *and the prompt file's hash*, the ad copy, and the page text. Editing a prompt file in place can't serve stale answers. Pages rarely change, so most scheduled checks cost nothing.
+- **Budget:** one `llm_usage` row is reserved per call, under a transaction-level advisory lock, before the call is made. Concurrent workers therefore can't overshoot `LLM_MAX_CALLS_PER_DAY` (a test runs 10 concurrent callers against a limit of 3). Every attempt counts, failed ones included, because the cap bounds what could be billed. Evals share the budget.
+- **Failure is a result, not a job failure.** An API error, the daily limit, or invalid output becomes an "error" result, which never alerts and never costs the site its other checks. No API key gives an "info" result ("turned off").
+- **Sampling.** The API has deprecated `temperature` (the current SDK no longer has the parameter). The default model, Haiku 4.5, still accepts it, so `LLM_TEMPERATURE=0` is sent in the request body, and it can be unset for newer models that reject it. Reproducibility doesn't depend on it: the cache returns the same verdict for the same inputs.
+- **Evals reuse the production path.** `evals run` calls the same `MessageMatcher` (purpose `eval` in `llm_usage`), so what is measured is what ships. The split is by page, not by example, so no page's text is in both dev and test. Scoring test a second time needs `--rerun-test` and is flagged in the report.
+
+**Alternatives considered.**
+- Calling the API inside the check. That breaks purity, and a saved capture could no longer be re-analyzed offline.
+- Storing the verdict inside the PageCapture. A capture records what the browser saw; the verdict also depends on the ad copy, which isn't a property of the page.
+- Structured outputs (`output_config.format`). It's newer, and its JSON-schema support differs by model, while a forced tool call works on every current model.
+- Counting the budget by summing `llm_usage` without a lock. Two workers could both read "499" and both call.
+
+**Consequences.** The prompt text lives in `evals/message_match/prompts/`, outside the Python package, so the Docker image copies it in and compose mounts it. The check only sees text, not images, and the prompt tells the model so. The first real API call happens when you add your key: the request format is verified against the SDK with a mock HTTP server, not against the live API.

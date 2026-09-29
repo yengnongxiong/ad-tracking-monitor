@@ -1,15 +1,16 @@
 """The capture_and_check job: load a site on mobile and desktop, store the evidence, save results.
 
 Flow: load the site -> take the per-domain politeness lock -> capture each device -> upload
-screenshot + capture JSON -> run the checks -> in ONE transaction, save runs and results and
-mark the job done. If anything before the commit fails, nothing is saved and the job retries.
+screenshot + capture JSON -> release the lock -> ask the model about message match (sites with
+ad copy only) -> run the checks -> in ONE transaction, save runs and results and mark the job
+done. If anything before the commit fails, nothing is saved and the job retries.
 """
 
 import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -19,8 +20,11 @@ from tagmonitor.alerts.outbox import apply_results, worst_results
 from tagmonitor.browser.capturer import CaptureError
 from tagmonitor.browser.ssrf import SsrfError
 from tagmonitor.checks.base import CheckResult
+from tagmonitor.checks.message_match import MessageMatchOutcome, PageText
 from tagmonitor.checks.registry import run_checks
 from tagmonitor.db.pool import Pool
+from tagmonitor.llm.message_match import MessageMatcher
+from tagmonitor.llm.prompts import PromptError
 from tagmonitor.page_capture import Device, PageCapture
 from tagmonitor.queue.jobs import Conn, Job, complete
 from tagmonitor.sites import Site, get_site
@@ -39,7 +43,7 @@ class DeviceRun:
     capture: PageCapture
     capture_key: str
     screenshot_key: str | None
-    results: list[CheckResult]
+    results: list[CheckResult] = field(default_factory=list)
 
 
 @asynccontextmanager
@@ -71,6 +75,10 @@ async def run_capture_job(job: Job, ctx: WorkerContext) -> None:
         if not acquired:
             raise DomainBusy(site.registrable_domain)
         runs = [await capture_device(ctx, job, site, device) for device in DEVICES]
+
+    message_match = await assess_message_match(ctx, site, runs)
+    for run in runs:
+        run.results = run_checks(run.capture, site.check_config(), message_match)
 
     async with ctx.pool.connection() as conn, conn.transaction():
         for run in runs:
@@ -116,8 +124,28 @@ async def capture_device(ctx: WorkerContext, job: Job, site: Site, device: Devic
         capture=capture,
         capture_key=capture_key,
         screenshot_key=screenshot_key,
-        results=run_checks(capture, site.check_config()),
     )
+
+
+async def assess_message_match(
+    ctx: WorkerContext, site: Site, runs: list[DeviceRun]
+) -> MessageMatchOutcome | None:
+    """The model's verdict on the mobile page, or None when the site has no ad copy (then
+    the message match check doesn't run). A failed model call is a result, not a job failure:
+    it must never cost the site its other checks."""
+    ad = site.ad_copy()
+    if ad is None:
+        return None
+    mobile = next(run for run in runs if run.device == "mobile")
+    page = PageText.from_capture(mobile.capture)
+    if page is None:
+        return MessageMatchOutcome()  # the page didn't load; the check says so
+    try:
+        matcher = MessageMatcher.from_settings(ctx.pool, ctx.llm, ctx.settings)
+    except PromptError as exc:
+        log.exception("message match prompt misconfigured")
+        return MessageMatchOutcome(error="llm_error", error_detail=str(exc))
+    return await matcher.assess(ad, page)
 
 
 async def save_run(conn: Conn, job: Job, site: Site, run: DeviceRun) -> int:

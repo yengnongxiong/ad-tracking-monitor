@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from tagmonitor.checks.base import SiteConfig
+from tagmonitor.checks.message_match import AdCopy
 from tagmonitor.queue.jobs import Conn
 
 
@@ -21,6 +22,9 @@ class Site(BaseModel):
     expected_meta_pixel_ids: list[str]
     expected_ga4_ids: list[str]
     expected_google_ads_ids: list[str]
+    ad_headline: str | None = None
+    ad_primary_text: str | None = None
+    ad_cta: str | None = None
     next_check_at: datetime
 
     def check_config(self) -> SiteConfig:
@@ -31,6 +35,11 @@ class Site(BaseModel):
             expected_google_ads_ids=self.expected_google_ads_ids,
         )
 
+    def ad_copy(self) -> AdCopy | None:
+        """The ad to compare the page with, or None: message match only runs with ad copy."""
+        ad = AdCopy(headline=self.ad_headline, primary_text=self.ad_primary_text, cta=self.ad_cta)
+        return None if ad.is_empty else ad
+
 
 async def get_site(conn: Conn, site_id: UUID | str) -> Site | None:
     """Unscoped lookup for internal use (worker, alerts). API queries always scope by user."""
@@ -38,7 +47,7 @@ async def get_site(conn: Conn, site_id: UUID | str) -> Site | None:
         """
         SELECT id, user_id, name, url, registrable_domain, check_interval_minutes, paused,
                alert_email, expected_meta_pixel_ids, expected_ga4_ids,
-               expected_google_ads_ids, next_check_at
+               expected_google_ads_ids, ad_headline, ad_primary_text, ad_cta, next_check_at
         FROM sites WHERE id = %s
         """,
         (site_id,),

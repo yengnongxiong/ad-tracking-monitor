@@ -27,6 +27,7 @@ x-server: &server
   volumes:
     - ./server/src:/app/server/src
     - ./db:/app/db
+    - ./evals:/app/evals  # message-match prompts, and the eval dataset for `make eval-*`
   depends_on:
     postgres:
       condition: service_healthy
@@ -161,6 +162,7 @@ services:
       - ./server/pyproject.toml:/app/server/pyproject.toml:ro  # tool config (ruff, mypy, pytest)
       - ./db:/app/db
       - ./docs:/app/docs:ro  # a test checks docs/check-explanations.md is up to date
+      - ./evals:/app/evals:ro  # tests load the real prompt files
 
 volumes:
   pgdata:

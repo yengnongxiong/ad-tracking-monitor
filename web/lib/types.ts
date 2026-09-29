@@ -57,6 +57,15 @@ export interface ResultDetails {
   expected_ids?: string[];
   events?: TagEvent[];
   lcp_ms?: number | null;
+  // message_match: the model's verdict
+  overall?: number;
+  offer_consistency?: number;
+  headline_relevance?: number;
+  cta_alignment?: number;
+  issues?: string[];
+  suggestions?: string[];
+  model?: string;
+  prompt_version?: string;
   [key: string]: unknown;
 }
 

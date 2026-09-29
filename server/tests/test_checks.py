@@ -13,7 +13,7 @@ from tagmonitor.checks.meta_pixel import MetaPixelCheck
 from tagmonitor.checks.mobile_render import MobileRenderCheck
 from tagmonitor.checks.page_health import PageHealthCheck
 from tagmonitor.checks.page_speed import PageSpeedCheck
-from tagmonitor.checks.registry import ALL_CHECKS, run_checks
+from tagmonitor.checks.registry import ALL_CHECKS, CAPTURE_CHECKS, run_checks
 from tagmonitor.page_capture import PageCapture
 from tests.capture_builders import (
     FBEVENTS,
@@ -348,7 +348,7 @@ def test_worst_status_order() -> None:
 def test_run_checks_picks_checks_by_device() -> None:
     mobile = {r.check_key for r in run_checks(capture(device="mobile"), SITE)}
     desktop = {r.check_key for r in run_checks(capture(device="desktop"), SITE)}
-    assert mobile == {c.check_key for c in ALL_CHECKS}
+    assert mobile == {c.check_key for c in CAPTURE_CHECKS}  # message match needs a verdict
     assert desktop == mobile - {"page_speed", "mobile_render"}
 
 

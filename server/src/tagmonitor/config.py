@@ -60,6 +60,27 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False
     check_now_cooldown_seconds: int = 300
 
+    # LLM message match (PRD §15). Without an API key the check reports that it's turned off.
+    anthropic_api_key: str | None = None
+    llm_model: str = "claude-haiku-4-5-20251001"
+    # The prompt monitoring uses (evals/message_match/prompts/<version>.md). Switch it only
+    # after the new version has been measured on the eval set.
+    llm_prompt_version: str = "v1"
+    # All calls, monitoring and evals together, per UTC day. Cache hits don't count.
+    llm_max_calls_per_day: int = 500
+    # The API has deprecated sampling settings: models released after Claude Opus 4.6 reject
+    # any temperature but 1.0. Set LLM_TEMPERATURE to an empty value to not send one.
+    llm_temperature: float | None = 0.0
+    llm_max_tokens: int = 1024
+    llm_timeout_seconds: float = 30
+    # The SDK retries rate limits (429), overload and 5xx errors with backoff this many times.
+    llm_max_retries: int = 3
+
+    @field_validator("llm_temperature", "anthropic_api_key", mode="before")
+    @classmethod
+    def _empty_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
     @field_validator("ssrf_allow_hosts", mode="before")
     @classmethod
     def _split_hosts(cls, value: object) -> object:

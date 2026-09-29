@@ -119,6 +119,7 @@ export function SiteForm({
         <legend className="text-base font-semibold">Ad copy (optional)</legend>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Paste the ad that sends traffic here and we&apos;ll check the page matches its promise.
+          An AI model (Claude) compares the ad with the text a phone shows before scrolling.
         </p>
         <Field label="Headline">
           <input name="ad_headline" defaultValue={initial?.ad_headline ?? ""} maxLength={200} className={field} />

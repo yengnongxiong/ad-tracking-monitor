@@ -23,6 +23,12 @@ _ADS_PAGE_VIEW = (
     "you keep paying for clicks."
 )
 
+_MESSAGE_MATCH = (
+    "People click an ad expecting what it promised. If the page doesn't show it right away, "
+    "they leave, and you've paid for the click. Google Ads also rates each ad's landing page "
+    "experience, which feeds into what you pay per click."
+)
+
 # Keyed by (check_key, code). "*" entries apply to every check.
 EXPLANATIONS: dict[tuple[str, str], Explanation] = {
     ("*", "not_evaluated"): Explanation(
@@ -245,6 +251,49 @@ EXPLANATIONS: dict[tuple[str, str], Explanation] = {
         "The page reports JavaScript errors.",
         "Errors can stop tags, forms or checkout buttons from working.",
         "Send the errors listed in the details to your developer.",
+    ),
+    # -- Message match ---------------------------------------------------------------------------
+    ("message_match", "good_match"): Explanation(
+        "The page picks up where your ad left off: the same offer, a headline that echoes "
+        "the ad, and the action the ad asked for.",
+        _MESSAGE_MATCH,
+        "Nothing to do. If you change the ad, update the ad copy in tag-monitor too.",
+    ),
+    ("message_match", "partial_match"): Explanation(
+        "The page is related to your ad, but a visitor has to work to connect them: the offer, "
+        "the headline or the main button doesn't quite match what the ad said.",
+        _MESSAGE_MATCH,
+        "Read the issues and suggestions listed with this check. The usual fixes: repeat the "
+        "ad's offer in the page's main headline, and make the ad's call to action the most "
+        "visible button.",
+    ),
+    ("message_match", "poor_match"): Explanation(
+        "The page doesn't deliver what your ad promised: a different offer, a generic page, "
+        "or a promise (like a price or discount) that isn't there.",
+        _MESSAGE_MATCH,
+        "Point the ad at a page about exactly what it advertises, or change the page so the "
+        "ad's offer is the first thing visitors see. The issues listed with this check say "
+        "what's missing.",
+    ),
+    ("message_match", "llm_not_configured"): Explanation(
+        "Message match needs an Anthropic API key, and this server doesn't have one.",
+        "Nothing is wrong with your page; this check just can't run here.",
+        "Whoever runs this server can set ANTHROPIC_API_KEY to turn it on.",
+    ),
+    ("message_match", "llm_daily_limit"): Explanation(
+        "This server has a daily limit on AI checks, and it was reached, so we skipped this one.",
+        "It says nothing about your page. The limit keeps AI costs predictable.",
+        "Nothing to do; it runs again on the next check after midnight UTC.",
+    ),
+    ("message_match", "llm_error"): Explanation(
+        "The AI service didn't answer (it may have been busy or down).",
+        "It says nothing about your page.",
+        "Nothing to do; we'll try again on the next check.",
+    ),
+    ("message_match", "llm_invalid_output"): Explanation(
+        "The AI answered, but twice in a row not in the format we asked for, so we ignored it.",
+        "It says nothing about your page.",
+        "Nothing to do; we'll try again on the next check.",
     ),
 }
 

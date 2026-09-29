@@ -14,12 +14,12 @@ from tagmonitor.scan.analysis import (
     compute_findings,
     format_seconds,
     render_markdown,
-    wilson_interval,
     write_findings,
 )
 from tagmonitor.scan.robots import check_robots
 from tagmonitor.scan.runner import start_scan
 from tagmonitor.scan.targets import is_domain_name, load_targets
+from tagmonitor.stats import wilson_interval
 from tagmonitor.storage import ObjectStorage
 from tests.fixture_server import FixtureServer, StaticResolver
 from tests.test_worker import make_worker, run_until

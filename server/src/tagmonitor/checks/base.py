@@ -1,7 +1,8 @@
 """The Check contract: a pure function from (PageCapture, SiteConfig) to a CheckResult.
 
 Checks never touch the browser, the network or the database (ADR-005). Adding a check means
-writing one subclass and adding it to checks/registry.py.
+writing one subclass and adding it to checks/registry.py. The one check with a different input,
+message match, takes the language model's verdict instead (checks/message_match.py, ADR-017).
 """
 
 from abc import ABC, abstractmethod
@@ -43,16 +44,15 @@ class CheckResult(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
-class Check(ABC):
+class CheckBase:
+    """What every check has, whatever its input: a key, a title, and its outcome codes."""
+
     check_key: ClassVar[str]
     title: ClassVar[str]  # short name for people, e.g. "Meta Pixel"
     devices: ClassVar[frozenset[Device]] = frozenset({"mobile", "desktop"})
     # Every code analyze() can return besides the shared "not_evaluated"/"check_crashed".
     # A test checks that each one has a plain-English explanation.
     codes: ClassVar[frozenset[str]]
-
-    @abstractmethod
-    def analyze(self, capture: PageCapture, site: SiteConfig) -> CheckResult: ...
 
     def result(self, status: Status, code: str, summary: str, **details: Any) -> CheckResult:
         return CheckResult(
@@ -69,3 +69,10 @@ class Check(ABC):
             "Not checked: the page didn't load.",
             navigation_error=reason,
         )
+
+
+class Check(CheckBase, ABC):
+    """A check computed from the page capture alone."""
+
+    @abstractmethod
+    def analyze(self, capture: PageCapture, site: SiteConfig) -> CheckResult: ...

@@ -18,6 +18,8 @@ COPY server/pyproject.toml server/uv.lock server/.python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY server/src ./src
 COPY db /app/db
+# The worker reads the message-match prompt from here (tagmonitor/llm/prompts.py).
+COPY evals/message_match/prompts /app/evals/message_match/prompts
 RUN uv sync --frozen --no-dev
 USER pwuser
 CMD ["uvicorn", "tagmonitor.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

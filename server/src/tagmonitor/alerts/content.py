@@ -24,6 +24,7 @@ HEADLINES = {
     "not_https": "Your landing page isn't secure",
     "slow": "Your landing page is slow on phones",
     "missing_viewport": "Your landing page isn't mobile-friendly",
+    "poor_match": "Your landing page doesn't match your ad",
 }
 
 

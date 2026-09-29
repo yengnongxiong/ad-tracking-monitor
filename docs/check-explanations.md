@@ -221,6 +221,50 @@ Generated from `server/src/tagmonitor/checks/explanations.py`; edit that file an
 - **Why it matters:** Errors can stop tags, forms or checkout buttons from working.
 - **How to fix it:** Send the errors listed in the details to your developer.
 
+## Message match (`message_match`)
+
+### `good_match`
+
+- **What we saw:** The page picks up where your ad left off: the same offer, a headline that echoes the ad, and the action the ad asked for.
+- **Why it matters:** People click an ad expecting what it promised. If the page doesn't show it right away, they leave, and you've paid for the click. Google Ads also rates each ad's landing page experience, which feeds into what you pay per click.
+- **How to fix it:** Nothing to do. If you change the ad, update the ad copy in tag-monitor too.
+
+### `partial_match`
+
+- **What we saw:** The page is related to your ad, but a visitor has to work to connect them: the offer, the headline or the main button doesn't quite match what the ad said.
+- **Why it matters:** People click an ad expecting what it promised. If the page doesn't show it right away, they leave, and you've paid for the click. Google Ads also rates each ad's landing page experience, which feeds into what you pay per click.
+- **How to fix it:** Read the issues and suggestions listed with this check. The usual fixes: repeat the ad's offer in the page's main headline, and make the ad's call to action the most visible button.
+
+### `poor_match`
+
+- **What we saw:** The page doesn't deliver what your ad promised: a different offer, a generic page, or a promise (like a price or discount) that isn't there.
+- **Why it matters:** People click an ad expecting what it promised. If the page doesn't show it right away, they leave, and you've paid for the click. Google Ads also rates each ad's landing page experience, which feeds into what you pay per click.
+- **How to fix it:** Point the ad at a page about exactly what it advertises, or change the page so the ad's offer is the first thing visitors see. The issues listed with this check say what's missing.
+
+### `llm_not_configured`
+
+- **What we saw:** Message match needs an Anthropic API key, and this server doesn't have one.
+- **Why it matters:** Nothing is wrong with your page; this check just can't run here.
+- **How to fix it:** Whoever runs this server can set ANTHROPIC_API_KEY to turn it on.
+
+### `llm_daily_limit`
+
+- **What we saw:** This server has a daily limit on AI checks, and it was reached, so we skipped this one.
+- **Why it matters:** It says nothing about your page. The limit keeps AI costs predictable.
+- **How to fix it:** Nothing to do; it runs again on the next check after midnight UTC.
+
+### `llm_error`
+
+- **What we saw:** The AI service didn't answer (it may have been busy or down).
+- **Why it matters:** It says nothing about your page.
+- **How to fix it:** Nothing to do; we'll try again on the next check.
+
+### `llm_invalid_output`
+
+- **What we saw:** The AI answered, but twice in a row not in the format we asked for, so we ignored it.
+- **Why it matters:** It says nothing about your page.
+- **How to fix it:** Nothing to do; we'll try again on the next check.
+
 ## Any check
 
 ### `not_evaluated`

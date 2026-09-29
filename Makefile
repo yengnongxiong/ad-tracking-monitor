@@ -1,10 +1,11 @@
 # Common tasks. Everything runs in Docker, so the only host requirements are Docker and make.
 COMPOSE := docker compose
 
-.PHONY: help dev down migrate test lint fmt check demo-break-pixel demo-fix-pixel scan findings
+.PHONY: help dev down migrate test lint fmt check demo-break-pixel demo-fix-pixel scan findings \
+	eval-status eval-collect eval-label eval-split eval-run eval-report
 
 help: ## List the available targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
 
 .env:
 	cp .env.example .env
@@ -48,3 +49,26 @@ findings: .env ## Write docs/findings.md from a finished scan: make findings NAM
 	@test -n "$(NAME)" || (echo "usage: make findings NAME=fall-2026" && exit 1)
 	$(COMPOSE) run --rm --no-deps -v ./docs:/app/docs api \
 		python -m tagmonitor.scan analyze --name "$(NAME)" --docs-dir /app/docs
+
+# Message-match evals (evals/message_match/README.md). They run in the api container, so
+# `make dev` must be running (eval-run needs Postgres for the cache and the daily budget).
+EVALS := $(COMPOSE) run --rm --no-deps api python -m tagmonitor.evals
+
+eval-status: .env ## Evals: dataset progress (examples, pages, labels, split)
+	$(EVALS) status
+
+eval-collect: .env ## Evals: freeze the text of every page in examples.csv
+	$(EVALS) collect
+
+eval-label: .env ## Evals: label examples yourself, 1-5 (interactive, resumable)
+	$(EVALS) label --labeler "$${USER:-me}"
+
+eval-split: .env ## Evals: deterministic dev/test split, by page
+	$(EVALS) split
+
+eval-run: .env ## Evals: score a split: make eval-run PROMPT=v1 SPLIT=dev
+	@test -n "$(PROMPT)" -a -n "$(SPLIT)" || (echo "usage: make eval-run PROMPT=v1 SPLIT=dev" && exit 1)
+	$(EVALS) run --prompt "$(PROMPT)" --split "$(SPLIT)"
+
+eval-report: .env ## Evals: regenerate evals/message_match/results/report.md
+	$(EVALS) report

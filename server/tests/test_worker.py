@@ -10,6 +10,7 @@ from tagmonitor.alerts.senders import ConsoleEmailSender, EmailSender
 from tagmonitor.browser.capturer import CaptureError, CaptureResult, PageCapturer
 from tagmonitor.config import Settings, get_settings
 from tagmonitor.db.pool import Pool
+from tagmonitor.llm.transport import LlmTransport
 from tagmonitor.page_capture import PageCapture
 from tagmonitor.queue.jobs import PRIORITY_MANUAL, Job, complete, enqueue
 from tagmonitor.storage import ObjectStorage
@@ -33,6 +34,7 @@ def make_worker(
     run_scheduler: bool = False,
     email: EmailSender | None = None,
     settings: Settings | None = None,
+    llm: LlmTransport | None = None,
 ) -> Worker:
     context = WorkerContext(
         pool=pool,
@@ -40,6 +42,7 @@ def make_worker(
         storage=storage,
         email=email or ConsoleEmailSender(),
         settings=settings or get_settings(),
+        llm=llm,
     )
     return Worker(
         context,
