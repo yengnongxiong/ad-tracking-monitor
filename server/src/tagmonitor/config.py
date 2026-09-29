@@ -72,7 +72,8 @@ class Settings(BaseSettings):
     # All calls, monitoring and evals together, per UTC day. Cache hits don't count.
     llm_max_calls_per_day: int = 500
     # The API has deprecated sampling settings: models released after Claude Opus 4.6 reject
-    # any temperature but 1.0. Set LLM_TEMPERATURE to an empty value to not send one.
+    # a temperature. Set LLM_TEMPERATURE to an empty value to not send one. (Claude Opus 5.5,
+    # Sonnet 5.5 and Fable 5.1 also reject the forced tool call llm/message_match.py relies on.)
     llm_temperature: float | None = 0.0
     llm_max_tokens: int = 1024
     llm_timeout_seconds: float = 30

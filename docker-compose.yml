@@ -1,5 +1,5 @@
 # Local development stack. `make dev` starts everything; see the Makefile for the other targets.
-# Host ports come from .env (defaults avoid clashing with abtest-platform's 5432/8000/3000).
+# Host ports come from .env (the defaults stay off the usual 5432/8000/3000).
 name: tag-monitor
 
 x-server: &server

@@ -1,4 +1,4 @@
-"""Click through the M7 demo in a real browser: sign up -> add a page -> first check ->
+"""Click through the demo in a real browser: sign up -> add a page -> first check ->
 break the pixel -> confirmation -> alert email -> fix -> recovery email.
 
 Run it against the local stack (`make dev`), from the repo root:
@@ -6,8 +6,8 @@ Run it against the local stack (`make dev`), from the repo root:
     cd server && uv run playwright install chromium   # once
     uv run python ../scripts/demo_walkthrough.py --video ../demo-video
 
-It saves screenshots to docs/milestones/img/ and, with --video, a .webm recording of the
-browser that you can turn into the README's demo GIF (e.g. with ffmpeg).
+It saves screenshots to docs/img/ and, with --video, a .webm recording of the browser,
+which is what the README's demo GIF is made from (see docs/build-log.md for the command).
 """
 
 import argparse
@@ -22,7 +22,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 REPO = Path(__file__).resolve().parents[1]
 BROKEN_FLAG = REPO / "demo" / "state" / "pixel-broken"
-SHOTS = REPO / "docs" / "milestones" / "img"
+SHOTS = REPO / "docs" / "img"
 DEMO_URL = "http://beanthere.demo/"
 
 
@@ -93,10 +93,10 @@ def main() -> None:
         # 3. The first check completes: the pixel is firing.
         page.get_by_text("Meta Pixel 1234567890123456 fired PageView.").wait_for()
         page.wait_for_timeout(1500)  # let screenshots and the chart render
-        page.screenshot(path=SHOTS / "m7-site-healthy.png", full_page=True)
+        page.screenshot(path=SHOTS / "site-healthy.png", full_page=True)
         page.goto(f"{args.base_url}/dashboard")
         page.get_by_role("link", name="Bean There Coffee").wait_for()
-        page.screenshot(path=SHOTS / "m7-dashboard.png")
+        page.screenshot(path=SHOTS / "dashboard.png")
         page.go_back()
 
         # 4. Break the pixel (the page still loads it, but never sends PageView), check now.
@@ -112,11 +112,11 @@ def main() -> None:
         page.reload()
         page.get_by_text("The Meta Pixel loads but never sends a PageView event.").wait_for()
         page.wait_for_timeout(1500)
-        page.screenshot(path=SHOTS / "m7-site-broken.png", full_page=True)
+        page.screenshot(path=SHOTS / "site-broken.png", full_page=True)
         mail = context.new_page()
         mail.goto(f"{args.mailpit}/view/{failure}")
         mail.wait_for_timeout(2000)
-        mail.screenshot(path=SHOTS / "m7-mailpit-failure.png")
+        mail.screenshot(path=SHOTS / "alert-email.png")
         mail.close()
 
         # 7-8. Fix the pixel, check now, and the recovery email arrives.
@@ -125,7 +125,7 @@ def main() -> None:
         wait_for_email(args.mailpit, owner, "Resolved: Meta Pixel on beanthere.demo")
         page.goto(f"{args.base_url}/alerts")
         page.get_by_text("Resolved: Meta Pixel on beanthere.demo").wait_for()
-        page.screenshot(path=SHOTS / "m7-alerts.png")
+        page.screenshot(path=SHOTS / "alerts.png")
 
         context.close()  # finishes writing the video
         browser.close()
