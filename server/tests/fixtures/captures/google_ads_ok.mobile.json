@@ -1,14 +1,14 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/google_ads_ok/",
+  "url": "http://fixtures.test:33907/google_ads_ok/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:30.420598Z",
-  "duration_ms": 2164.9339799996596,
+  "started_at": "2026-09-29T00:29:04.281771Z",
+  "duration_ms": 2154.717475000325,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/google_ads_ok/",
-    "final_url": "http://fixtures.test:46699/google_ads_ok/",
+    "requested_url": "http://fixtures.test:33907/google_ads_ok/",
+    "final_url": "http://fixtures.test:33907/google_ads_ok/",
     "redirect_chain": [],
     "status": 200,
     "load_event_fired": true,
@@ -17,13 +17,13 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/google_ads_ok/",
+      "url": "http://fixtures.test:33907/google_ads_ok/",
       "method": "GET",
       "resource_type": "document",
       "status": 200,
       "failure": null,
-      "started_ms": 40.053425999758474,
-      "duration_ms": 13.956424000298284,
+      "started_ms": 37.81732900006318,
+      "duration_ms": 12.303170999985014,
       "response_bytes": 907,
       "post_data": null
     },
@@ -33,19 +33,19 @@
       "resource_type": "script",
       "status": 200,
       "failure": null,
-      "started_ms": 53.25443699985044,
-      "duration_ms": 7.422927999868989,
+      "started_ms": 49.223384000470105,
+      "duration_ms": 7.335057000091183,
       "response_bytes": 1844,
       "post_data": null
     },
     {
-      "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/123456789/?random=1790637930480",
+      "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/123456789/?random=1790641744335",
       "method": "GET",
       "resource_type": "image",
       "status": 200,
       "failure": null,
-      "started_ms": 62.401466999745026,
-      "duration_ms": 3.2715110000935965,
+      "started_ms": 56.89044200062199,
+      "duration_ms": 3.1422379997820826,
       "response_bytes": 101,
       "post_data": null
     }
@@ -72,7 +72,7 @@
   "performance": {
     "lcp_ms": 28.0,
     "layout_shift": 0.0,
-    "load_ms": 26.200000000186265,
+    "load_ms": 22.799999999813735,
     "transfer_bytes": 2852,
     "request_count": 3
   },

@@ -37,8 +37,13 @@ class PageSpeedCheck(Check):
                 "We couldn't measure how fast the main content appears.",
                 **details,
             )
-        seconds = performance.lcp_ms / 1000
-        sentence = f"The main content appears after {seconds:.1f} s on mobile ({measurement})."
+        # Rounding a 30 ms paint to "0.0 s" reads like a bug, so very fast pages say so.
+        timing = (
+            "in under 0.1 s"
+            if performance.lcp_ms < 100
+            else f"after {performance.lcp_ms / 1000:.1f} s"
+        )
+        sentence = f"The main content appears {timing} on mobile ({measurement})."
         if performance.lcp_ms <= GOOD_LCP_MS:
             return self.result("pass", "fast", sentence, **details)
         if performance.lcp_ms <= POOR_LCP_MS:

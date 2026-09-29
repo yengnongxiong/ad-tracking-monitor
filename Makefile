@@ -1,7 +1,7 @@
 # Common tasks. Everything runs in Docker, so the only host requirements are Docker and make.
 COMPOSE := docker compose
 
-.PHONY: help dev down migrate test lint fmt check
+.PHONY: help dev down migrate test lint fmt check demo-break-pixel demo-fix-pixel
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-8s %s\n", $$1, $$2}'
@@ -32,3 +32,9 @@ fmt: .env ## Auto-format and auto-fix Python code
 check: .env ## Capture one URL on mobile and desktop and print a report: make check URL=https://...
 	@test -n "$(URL)" || (echo "usage: make check URL=https://example.com" && exit 1)
 	$(COMPOSE) run --rm --no-deps api python -m tagmonitor.check "$(URL)"
+
+demo-break-pixel: ## Demo: the Bean There page keeps its Meta Pixel but stops sending PageView
+	@mkdir -p demo/state && touch demo/state/pixel-broken && echo "pixel broken: click Check now in the dashboard"
+
+demo-fix-pixel: ## Demo: the Bean There page sends PageView again
+	@rm -f demo/state/pixel-broken && echo "pixel fixed: click Check now in the dashboard"

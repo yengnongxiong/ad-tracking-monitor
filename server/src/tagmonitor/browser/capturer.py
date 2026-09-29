@@ -148,6 +148,11 @@ class PageCapturer:
         else:
             self._retired.add(browser)
 
+    def uses_tracking_stubs(self, url: str) -> bool:
+        """Stubs answer tag requests only for allowlisted dev hosts (tests, the local demo),
+        so a real site added to a dev stack is still observed talking to the real tags."""
+        return self.tracking_stubs and self.policy.is_allowlisted(urlsplit(url).hostname or "")
+
     async def capture(self, url: str, device: Device) -> CaptureResult:
         """Capture one URL on one device.
 
@@ -187,7 +192,7 @@ class PageCapturer:
                 accept_downloads=False,
             )
             try:
-                if self.tracking_stubs:
+                if self.uses_tracking_stubs(url):
                     await install_tracking_stubs(context)
                 await context.add_init_script(script=page_scripts.PERFORMANCE_OBSERVER)
                 page = await context.new_page()

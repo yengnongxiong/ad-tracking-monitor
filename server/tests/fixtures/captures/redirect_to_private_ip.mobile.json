@@ -1,16 +1,16 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/redirect_to_private_ip/",
+  "url": "http://fixtures.test:33907/redirect_to_private_ip/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:56.161324Z",
-  "duration_ms": 60.15649000028134,
+  "started_at": "2026-09-29T00:29:30.209833Z",
+  "duration_ms": 68.44086300043273,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/redirect_to_private_ip/",
-    "final_url": "http://127.0.0.1:46699/internal/secret",
+    "requested_url": "http://fixtures.test:33907/redirect_to_private_ip/",
+    "final_url": "http://127.0.0.1:33907/internal/secret",
     "redirect_chain": [
-      "http://fixtures.test:46699/redirect_to_private_ip/"
+      "http://fixtures.test:33907/redirect_to_private_ip/"
     ],
     "status": null,
     "load_event_fired": true,
@@ -19,24 +19,24 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/redirect_to_private_ip/",
+      "url": "http://fixtures.test:33907/redirect_to_private_ip/",
       "method": "GET",
       "resource_type": "document",
       "status": 302,
       "failure": null,
-      "started_ms": 40.08640300025945,
-      "duration_ms": 4.165356999692449,
+      "started_ms": 43.81203500088304,
+      "duration_ms": 6.265045999498398,
       "response_bytes": 164,
       "post_data": null
     },
     {
-      "url": "http://127.0.0.1:46699/internal/secret",
+      "url": "http://127.0.0.1:33907/internal/secret",
       "method": "GET",
       "resource_type": "document",
       "status": 403,
       "failure": "refused by egress proxy: ssrf_blocked",
-      "started_ms": 44.61517700019613,
-      "duration_ms": 12.907862999782083,
+      "started_ms": 50.45738300032099,
+      "duration_ms": 13.335386000107974,
       "response_bytes": 191,
       "post_data": null
     }
@@ -44,7 +44,7 @@
   "blocked": [
     {
       "host": "127.0.0.1",
-      "port": 46699,
+      "port": 33907,
       "code": "ssrf_blocked",
       "detail": "127.0.0.1 points to a non-public address (127.0.0.1)"
     }

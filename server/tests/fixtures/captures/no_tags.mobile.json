@@ -1,14 +1,14 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/no_tags/",
+  "url": "http://fixtures.test:33907/no_tags/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:49.723664Z",
-  "duration_ms": 2129.431641999872,
+  "started_at": "2026-09-29T00:29:23.708865Z",
+  "duration_ms": 2149.6284750000996,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/no_tags/",
-    "final_url": "http://fixtures.test:46699/no_tags/",
+    "requested_url": "http://fixtures.test:33907/no_tags/",
+    "final_url": "http://fixtures.test:33907/no_tags/",
     "redirect_chain": [],
     "status": 200,
     "load_event_fired": true,
@@ -17,13 +17,13 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/no_tags/",
+      "url": "http://fixtures.test:33907/no_tags/",
       "method": "GET",
       "resource_type": "document",
       "status": 200,
       "failure": null,
-      "started_ms": 38.64779199966506,
-      "duration_ms": 12.713895000160846,
+      "started_ms": 39.16145299990603,
+      "duration_ms": 13.390304000495235,
       "response_bytes": 735,
       "post_data": null
     }
@@ -51,9 +51,9 @@
     "viewport_width": 412
   },
   "performance": {
-    "lcp_ms": 28.0,
+    "lcp_ms": 32.0,
     "layout_shift": 0.0,
-    "load_ms": 14.600000000093132,
+    "load_ms": 13.700000000186265,
     "transfer_bytes": 735,
     "request_count": 1
   },

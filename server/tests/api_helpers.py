@@ -22,8 +22,13 @@ API_RESOLVER = StaticResolver(
 )
 
 
+# Product defaults, pinned so values tuned in a developer's .env (the demo shortens the
+# check-now cooldown) can't change what the tests assert.
+PRODUCT_DEFAULTS = {"check_now_cooldown_seconds": 300, "trust_proxy_headers": False}
+
+
 def make_app(pool: Pool, storage: ObjectStorage, **settings: object) -> FastAPI:
-    app = create_app(get_settings().model_copy(update=settings))
+    app = create_app(get_settings().model_copy(update=PRODUCT_DEFAULTS | settings))
     app.state.pool = pool
     app.state.storage = storage
     app.state.resolver = API_RESOLVER

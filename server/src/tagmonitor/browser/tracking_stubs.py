@@ -4,8 +4,8 @@ Tests must never contact the real internet, and the demo must never send fake hi
 or Google. These Playwright routes answer the tracking hosts locally, before any network
 access. The stand-in scripts behave like the real tags *as seen on the network*:
 
-- fbevents.js: fbq('init', id) + fbq('track', 'PageView') produces
-  GET https://www.facebook.com/tr/?id=<id>&ev=PageView
+- fbevents.js: fbq('init', id) fetches connect.facebook.net/signals/config/<id>, and
+  fbq('track', 'PageView') produces GET https://www.facebook.com/tr/?id=<id>&ev=PageView
 - gtag.js: gtag('config', 'G-...') produces a GA4 /g/collect page_view beacon (POST);
   gtag('config', 'AW-123') produces a Google Ads viewthroughconversion hit; an 'event' with
   send_to 'AW-123/label' produces a googleadservices.com conversion hit.
@@ -13,7 +13,8 @@ access. The stand-in scripts behave like the real tags *as seen on the network*:
   container, it loads gtag.js for that measurement id.
 
 The captured requests then look like real tag traffic, so the checks can't tell the difference.
-Only enabled in tests and when TRACKING_STUBS=true (local demo); never in production.
+Only enabled in tests and when TRACKING_STUBS=true (local demo), and even then only for pages
+on allowlisted dev hosts (PageCapturer.uses_tracking_stubs). Never in production.
 """
 
 import json
@@ -48,9 +49,21 @@ FBEVENTS_JS = """
       "&ev=" + encodeURIComponent(ev) + "&dl=" + encodeURIComponent(location.href) +
       "&ts=" + Date.now() + "&n=" + sent;
   }
+  function loadConfig(id) {
+    // Like the real script: fetch the pixel's config, which reveals the pixel id on the
+    // network even when no event is ever sent.
+    var script = document.createElement("script");
+    script.async = true;
+    script.src = "https://connect.facebook.net/signals/config/" + encodeURIComponent(id) +
+      "?v=2.9.0&r=stable";
+    document.head.appendChild(script);
+  }
   function handle(args) {
     var command = args[0];
-    if (command === "init") pixels.push(String(args[1]));
+    if (command === "init") {
+      pixels.push(String(args[1]));
+      loadConfig(String(args[1]));
+    }
     else if (command === "track" || command === "trackCustom") {
       pixels.forEach(function (id) { hit(id, String(args[1])); });
     } else if (command === "trackSingle") hit(String(args[1]), String(args[2]));
@@ -133,6 +146,8 @@ async def _answer(route: Route) -> None:
     path = parts.path
     if host.endswith("facebook.net") and path.endswith("/fbevents.js"):
         await _javascript(route, FBEVENTS_JS)
+    elif host.endswith("facebook.net") and path.startswith("/signals/config/"):
+        await _javascript(route, "/* pixel config */")
     elif host.endswith("googletagmanager.com") and path == "/gtm.js":
         container_id = parse_qs(parts.query).get("id", ["GTM-UNKNOWN"])[0]
         await _javascript(

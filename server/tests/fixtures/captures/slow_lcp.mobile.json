@@ -1,14 +1,14 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/slow_lcp/",
+  "url": "http://fixtures.test:33907/slow_lcp/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:56.226451Z",
-  "duration_ms": 7180.1937989998805,
+  "started_at": "2026-09-29T00:29:30.288377Z",
+  "duration_ms": 7168.129642000167,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/slow_lcp/",
-    "final_url": "http://fixtures.test:46699/slow_lcp/",
+    "requested_url": "http://fixtures.test:33907/slow_lcp/",
+    "final_url": "http://fixtures.test:33907/slow_lcp/",
     "redirect_chain": [],
     "status": 200,
     "load_event_fired": true,
@@ -17,24 +17,24 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/slow_lcp/",
+      "url": "http://fixtures.test:33907/slow_lcp/",
       "method": "GET",
       "resource_type": "document",
       "status": 200,
       "failure": null,
-      "started_ms": 39.61712799991801,
-      "duration_ms": 12.336711999978434,
+      "started_ms": 42.09841699957906,
+      "duration_ms": 15.701031999924453,
       "response_bytes": 747,
       "post_data": null
     },
     {
-      "url": "http://fixtures.test:46699/slow_lcp/hero.svg",
+      "url": "http://fixtures.test:33907/slow_lcp/hero.svg",
       "method": "GET",
       "resource_type": "image",
       "status": 200,
       "failure": null,
-      "started_ms": 51.634554999964166,
-      "duration_ms": 5019.141390000186,
+      "started_ms": 55.25084799955948,
+      "duration_ms": 5016.28351599993,
       "response_bytes": 25164,
       "post_data": null
     }
@@ -61,7 +61,7 @@
   "performance": {
     "lcp_ms": 5036.0,
     "layout_shift": 0.0,
-    "load_ms": 5033.399999999907,
+    "load_ms": 5031.5,
     "transfer_bytes": 25911,
     "request_count": 2
   },

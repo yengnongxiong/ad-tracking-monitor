@@ -1,14 +1,14 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/meta_ok/",
+  "url": "http://fixtures.test:33907/meta_ok/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:43.306427Z",
-  "duration_ms": 2126.857244999883,
+  "started_at": "2026-09-29T00:29:17.228415Z",
+  "duration_ms": 2140.587179999784,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/meta_ok/",
-    "final_url": "http://fixtures.test:46699/meta_ok/",
+    "requested_url": "http://fixtures.test:33907/meta_ok/",
+    "final_url": "http://fixtures.test:33907/meta_ok/",
     "redirect_chain": [],
     "status": 200,
     "load_event_fired": true,
@@ -17,13 +17,13 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/meta_ok/",
+      "url": "http://fixtures.test:33907/meta_ok/",
       "method": "GET",
       "resource_type": "document",
       "status": 200,
       "failure": null,
-      "started_ms": 37.497608000194305,
-      "duration_ms": 13.075291999939509,
+      "started_ms": 36.93053200004215,
+      "duration_ms": 14.785104999646137,
       "response_bytes": 1122,
       "post_data": null
     },
@@ -33,19 +33,30 @@
       "resource_type": "script",
       "status": 200,
       "failure": null,
-      "started_ms": 50.11912500003746,
-      "duration_ms": 3.785731999869313,
-      "response_bytes": 1148,
+      "started_ms": 52.190448999681394,
+      "duration_ms": 4.817549000108556,
+      "response_bytes": 1599,
       "post_data": null
     },
     {
-      "url": "https://www.facebook.com/tr/?id=111111111111111&ev=PageView&dl=http%3A%2F%2Ffixtures.test%3A46699%2Fmeta_ok%2F&ts=1790637943359&n=1",
+      "url": "https://connect.facebook.net/signals/config/111111111111111?v=2.9.0&r=stable",
+      "method": "GET",
+      "resource_type": "script",
+      "status": 200,
+      "failure": null,
+      "started_ms": 57.3768200001723,
+      "duration_ms": 4.193331999886141,
+      "response_bytes": 89,
+      "post_data": null
+    },
+    {
+      "url": "https://www.facebook.com/tr/?id=111111111111111&ev=PageView&dl=http%3A%2F%2Ffixtures.test%3A33907%2Fmeta_ok%2F&ts=1790641757284&n=1",
       "method": "GET",
       "resource_type": "image",
       "status": 200,
       "failure": null,
-      "started_ms": 54.97035799999139,
-      "duration_ms": 2.163406999898143,
+      "started_ms": 57.776554000156466,
+      "duration_ms": 4.166366999925231,
       "response_bytes": 101,
       "post_data": null
     }
@@ -70,11 +81,11 @@
     "viewport_width": 412
   },
   "performance": {
-    "lcp_ms": 24.0,
+    "lcp_ms": 32.0,
     "layout_shift": 0.0,
-    "load_ms": 20.90000000037253,
-    "transfer_bytes": 2371,
-    "request_count": 3
+    "load_ms": 25.799999999813735,
+    "transfer_bytes": 2911,
+    "request_count": 4
   },
   "screenshot_key": null
 }

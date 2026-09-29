@@ -236,3 +236,11 @@ async def test_browser_relaunch_waits_for_captures_still_using_it(
         )
         assert all(r.capture.navigation.status == 200 for r in results)
         assert capturer.browser_launches >= 3
+
+
+def test_tracking_stubs_only_apply_to_allowlisted_dev_hosts() -> None:
+    capturer = PageCapturer(policy=TEST_POLICY, resolver=TEST_RESOLVER, tracking_stubs=True)
+    assert capturer.uses_tracking_stubs("http://fixtures.test:8000/meta_ok/")
+    assert not capturer.uses_tracking_stubs("https://real-shop.example/")
+    off = PageCapturer(policy=TEST_POLICY, resolver=TEST_RESOLVER, tracking_stubs=False)
+    assert not off.uses_tracking_stubs("http://fixtures.test:8000/meta_ok/")

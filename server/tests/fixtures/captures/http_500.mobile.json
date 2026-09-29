@@ -1,14 +1,14 @@
 {
   "capture_schema_version": 1,
-  "url": "http://fixtures.test:46699/http_500/",
+  "url": "http://fixtures.test:33907/http_500/",
   "device": "mobile",
   "user_agent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Mobile Safari/537.36",
   "throttling": "none",
-  "started_at": "2026-09-28T23:25:34.738761Z",
-  "duration_ms": 2128.774954000164,
+  "started_at": "2026-09-29T00:29:08.618382Z",
+  "duration_ms": 2133.06327600003,
   "navigation": {
-    "requested_url": "http://fixtures.test:46699/http_500/",
-    "final_url": "http://fixtures.test:46699/http_500/",
+    "requested_url": "http://fixtures.test:33907/http_500/",
+    "final_url": "http://fixtures.test:33907/http_500/",
     "redirect_chain": [],
     "status": 500,
     "load_event_fired": true,
@@ -17,13 +17,13 @@
   },
   "requests": [
     {
-      "url": "http://fixtures.test:46699/http_500/",
+      "url": "http://fixtures.test:33907/http_500/",
       "method": "GET",
       "resource_type": "document",
       "status": 500,
       "failure": null,
-      "started_ms": 39.22990299997764,
-      "duration_ms": 12.65057099999467,
+      "started_ms": 47.99416300011217,
+      "duration_ms": 10.656942999958119,
       "response_bytes": 648,
       "post_data": null
     }
@@ -50,9 +50,9 @@
     "viewport_width": 412
   },
   "performance": {
-    "lcp_ms": 24.0,
+    "lcp_ms": 32.0,
     "layout_shift": 0.0,
-    "load_ms": 14.399999999906868,
+    "load_ms": 12.0,
     "transfer_bytes": 648,
     "request_count": 1
   },

@@ -240,6 +240,11 @@ def test_speed_thresholds(lcp_ms: float | None, expected: tuple[Status, str]) ->
     assert outcome(run(SPEED, capture(lcp_ms=lcp_ms))) == expected
 
 
+def test_speed_says_under_a_tenth_of_a_second_for_very_fast_pages() -> None:
+    summary = run(SPEED, capture(lcp_ms=32)).summary
+    assert summary == "The main content appears in under 0.1 s on mobile (lab measurement)."
+
+
 def test_speed_labels_the_measurement() -> None:
     result = run(SPEED, capture(lcp_ms=3200, throttling="slow4g"))
     assert result.summary == (

@@ -221,3 +221,19 @@ The pure rules live in `browser/ssrf.py` and are reused by the API (M6) to rejec
 **Alternatives considered.** JWT access and refresh tokens (stateless, but revocation needs a denylist, i.e. state again, and tokens in JavaScript-readable storage are exposed to XSS). A full auth provider (Auth0, Clerk): the right call for a product, but it hides exactly the parts this project wants to show.
 
 **Consequences.** One indexed lookup per request (`sessions.token_hash` is unique). Expired sessions and old login attempts need periodic cleanup (M10 retention).
+
+---
+
+## ADR-015: A local demo harness that can't weaken production (M7)
+
+**Context.** The M7 acceptance flow (sign up → add a site → break a pixel → alert → fix → recovery) needs a landing page whose pixel can be broken on demand, inside Docker. That page sits on a private Docker address, which the SSRF guard (correctly) refuses, and its Meta and Google tags would send fake hits to the real vendors.
+
+**Decision.**
+- `demo/server.py` serves "Bean There Coffee" at `http://beanthere.demo/`, a Docker network alias (the `.demo` name exists only on the compose network) that is also published on `localhost:8088`. `make demo-break-pixel` / `make demo-fix-pixel` toggle a flag file, and the page then keeps loading the pixel but stops sending PageView.
+- Only the dev compose file sets `SSRF_ALLOW_HOSTS=beanthere.demo` (an exact hostname) and `TRACKING_STUBS=true` on the API and workers. Stubs apply **only to pages on allowlisted hosts** (`PageCapturer.uses_tracking_stubs`), so a real site added to the dev stack still talks to the real tags.
+- The dev `.env` shortens the confirmation delay (60 s instead of 600) and the "Check now" cooldown (20 s instead of 300). The code defaults stay at the PRD values.
+- `scripts/demo_walkthrough.py` clicks through the whole flow in a real browser, saves screenshots, and can record a video for the README GIF.
+
+**Alternatives considered.** Serving the demo page over HTTPS with a self-signed certificate and teaching Chromium to trust it (fragile and a lot of machinery for a demo); loosening the SSRF guard for all private addresses in dev (then dev no longer exercises the real guard).
+
+**Consequences.** The demo is honest: the page really is served over plain HTTP, so Page health really does report "not HTTPS" and sends that alert too. Production is unaffected by construction: the allowlist is empty and stubs are off unless explicitly configured.

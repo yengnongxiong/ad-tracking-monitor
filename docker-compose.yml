@@ -11,7 +11,7 @@ x-server: &server
   env_file:
     - path: .env
       required: false
-  environment:
+  environment: &server-env
     # Inside the compose network, services are reached by name, not via localhost ports.
     DATABASE_URL: postgresql://${POSTGRES_USER:-tagmonitor}:${POSTGRES_PASSWORD:-tagmonitor}@postgres:5432/${POSTGRES_DB:-tagmonitor}
     S3_ENDPOINT_URL: http://minio:9000
@@ -84,6 +84,13 @@ services:
         condition: service_completed_successfully
     command: ["uvicorn", "tagmonitor.api.app:app", "--host", "0.0.0.0", "--port", "8000",
               "--reload", "--reload-dir", "src"]
+    environment:
+      <<: *server-env
+      # Local demo only: the SSRF guard lets the demo landing page (a private Docker address)
+      # through, and its Meta/Google tags are answered by local stubs, so nothing is sent to
+      # Meta or Google. Real sites you add are unaffected (ADR-015).
+      SSRF_ALLOW_HOSTS: beanthere.demo
+      TRACKING_STUBS: "true"
     ports:
       - "${API_PORT:-8001}:8000"
     healthcheck:
@@ -101,12 +108,33 @@ services:
       minio:
         condition: service_healthy
     command: ["python", "-m", "tagmonitor.worker"]
+    environment:
+      <<: *server-env
+      # Local demo only: the SSRF guard lets the demo landing page (a private Docker address)
+      # through, and its Meta/Google tags are answered by local stubs, so nothing is sent to
+      # Meta or Google. Real sites you add are unaffected (ADR-015).
+      SSRF_ALLOW_HOSTS: beanthere.demo
+      TRACKING_STUBS: "true"
     # SIGTERM gives in-flight captures up to 75 s to finish (worker/runner.py) before Docker
     # would kill the process, so allow a bit more than that.
     stop_grace_period: 90s
     # Two containers pulling from the same Postgres queue prove horizontal scaling (PRD §12).
     deploy:
       replicas: 2
+
+  # The demo landing page (demo/server.py): http://beanthere.demo/ inside this network,
+  # http://localhost:8088 on your machine. `make demo-break-pixel` / `make demo-fix-pixel`.
+  demo-site:
+    <<: *server  # reuses the server image (plain Python is all it needs)
+    command: ["python", "/app/demo/server.py", "--port", "80"]
+    volumes:
+      - ./demo:/app/demo
+    depends_on: []
+    ports:
+      - "${DEMO_SITE_PORT:-8088}:80"
+    networks:
+      default:
+        aliases: [beanthere.demo]
 
   web:
     build: ./web
